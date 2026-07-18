@@ -357,9 +357,16 @@ function convertCost(usd) {
   return usd * (exchangeRates[currentCurrency] || 1);
 }
 
+// Adds thousands separators so large figures stay easy to read at a glance
+// (e.g. 1,234,567.99), regardless of currency or language.
+function formatNum(value, decimals) {
+  if (value == null || !isFinite(value)) return "";
+  return value.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
 function formatCurrency(usd) {
   if (usd == null) return null;
-  return CURRENCY_SYMBOLS[currentCurrency] + convertCost(usd).toFixed(2);
+  return CURRENCY_SYMBOLS[currentCurrency] + formatNum(convertCost(usd), 2);
 }
 
 document.getElementById("currency-select").addEventListener("change", (e) => {
@@ -1270,7 +1277,7 @@ function renderTable() {
     tr.querySelector(".cell-cost").textContent = costText;
     tr.querySelector(".cell-source").textContent = r.sourceKey ? formatSource(r.sourceKey, r.sourceParams) : "";
     tr.querySelector(".cell-citations").textContent = r.status === "done" ? (r.citedByCount != null ? r.citedByCount.toLocaleString("en-US") : "–") : "";
-    tr.querySelector(".cell-meancited").textContent = r.status === "done" ? (r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "–") : "";
+    tr.querySelector(".cell-meancited").textContent = r.status === "done" ? (r.meanCitedness != null ? formatNum(r.meanCitedness, 2) : "–") : "";
     tr.querySelector(".cell-notes").innerHTML = notesHtml;
     tr.querySelector(".hide-checkbox").checked = manuallyHidden;
 
@@ -1348,12 +1355,12 @@ function updateSummary() {
   const costPerYear = yearsSpan != null ? totalCost / yearsSpan : null;
 
   const sym = CURRENCY_SYMBOLS[currentCurrency];
-  document.getElementById("stat-total-cost").textContent = sym + totalCost.toFixed(2);
-  document.getElementById("stat-avg-all").textContent = sym + avgAll.toFixed(2);
-  document.getElementById("stat-avg-paid").textContent = sym + avgPaid.toFixed(2);
-  document.getElementById("stat-determined").textContent = `${determined.length} / ${finished.length}`;
-  document.getElementById("stat-cost-per-citation").textContent = costPerCitation != null ? sym + costPerCitation.toFixed(2) : "–";
-  document.getElementById("stat-cost-per-year").textContent = costPerYear != null ? sym + costPerYear.toFixed(2) : "–";
+  document.getElementById("stat-total-cost").textContent = sym + formatNum(totalCost, 2);
+  document.getElementById("stat-avg-all").textContent = sym + formatNum(avgAll, 2);
+  document.getElementById("stat-avg-paid").textContent = sym + formatNum(avgPaid, 2);
+  document.getElementById("stat-determined").textContent = `${formatNum(determined.length, 0)} / ${formatNum(finished.length, 0)}`;
+  document.getElementById("stat-cost-per-citation").textContent = costPerCitation != null ? sym + formatNum(costPerCitation, 2) : "–";
+  document.getElementById("stat-cost-per-year").textContent = costPerYear != null ? sym + formatNum(costPerYear, 2) : "–";
 
   renderHistogram(determinedConverted);
   renderActualScatter(finished);
@@ -1464,10 +1471,10 @@ function renderHistogram(costs) {
         nBins: counts.length,
         lines: [
           mean != null
-            ? { fractionalIndex: fractionalIndexForValue(mean, t1, t2), color: "#0c1e30", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${mean.toFixed(0)}` }
+            ? { fractionalIndex: fractionalIndexForValue(mean, t1, t2), color: "#0c1e30", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${formatNum(mean, 0)}` }
             : null,
           median != null
-            ? { fractionalIndex: fractionalIndexForValue(median, t1, t2), color: "#7a3fa0", label: `Median: ${sym}${median.toFixed(0)}` }
+            ? { fractionalIndex: fractionalIndexForValue(median, t1, t2), color: "#7a3fa0", label: `Median: ${sym}${formatNum(median, 0)}` }
             : null,
         ].filter(Boolean),
       }
@@ -1540,11 +1547,11 @@ function renderHistogram(costs) {
 function buildScatterChart(existingChart, canvasId, points, color, xLabel, yLabel, xIsCurrency) {
   const canvas = document.getElementById(canvasId);
   if (!canvas || typeof Chart === "undefined") return existingChart;
-  const fmtX = (v) => (xIsCurrency ? `${CURRENCY_SYMBOLS[currentCurrency]}${v.toFixed(0)}` : v.toFixed(2));
+  const fmtX = (v) => (xIsCurrency ? `${CURRENCY_SYMBOLS[currentCurrency]}${formatNum(v, 0)}` : formatNum(v, 2));
 
   const tooltipCallbacks = {
     title: (items) => (items[0] && items[0].raw && items[0].raw.title) || "",
-    label: (item) => [`${xLabel}: ${fmtX(item.parsed.x)}`, `${yLabel}: ${item.parsed.y.toFixed(1)}`],
+    label: (item) => [`${xLabel}: ${fmtX(item.parsed.x)}`, `${yLabel}: ${formatNum(item.parsed.y, 1)}`],
   };
 
   if (!existingChart) {
@@ -1880,11 +1887,11 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
         <td>${titleCell}</td>
         <td>${r.doi ? `<a href="https://doi.org/${escapeHtml(r.doi)}">${escapeHtml(r.doi)}</a>` : "–"}</td>
         <td>${r.oaStatus ? escapeHtml(oaLabel(r.oaStatus)) : "–"}</td>
-        <td>${r.cost != null ? sym + convertCost(r.cost).toFixed(2) : "–"}</td>
+        <td>${r.cost != null ? sym + formatNum(convertCost(r.cost), 2) : "–"}</td>
         <td>${r.sourceKey ? escapeHtml(formatSource(r.sourceKey, r.sourceParams)) : ""}</td>
         <td>${r.citedByCount != null ? r.citedByCount.toLocaleString("en-US") : "–"}</td>
-        <td>${r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "–"}</td>
-        <td>${altScore != null ? altScore : "–"}</td>
+        <td>${r.meanCitedness != null ? formatNum(r.meanCitedness, 2) : "–"}</td>
+        <td>${altScore != null ? formatNum(altScore, 0) : "–"}</td>
         <td>${escapeHtml(pdfText)}</td>
         <td>${r.publicationYear || "–"}</td>
         <td>${escapeHtml([r.journal, r.field].filter(Boolean).join(" · "))}</td>
@@ -1930,10 +1937,10 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
   }
   ${retractedCount > 0 ? `<div class="retraction-banner">${escapeHtml(t("retraction_banner_text", { n: retractedCount, plural: retractedCount === 1 ? "" : "s" }))}</div>` : ""}
   <div class="stats">
-    <div class="stat"><b>${sym}${totalCost.toFixed(2)}</b><span>${t("stat_total")}</span></div>
-    <div class="stat"><b>${sym}${avgAll.toFixed(2)}</b><span>${t("stat_avg_all")}</span></div>
-    <div class="stat"><b>${sym}${avgPaid.toFixed(2)}</b><span>${t("stat_avg_paid")}</span></div>
-    <div class="stat"><b>${determined.length} / ${finished.length}</b><span>${t("stat_determined")}</span></div>
+    <div class="stat"><b>${sym}${formatNum(totalCost, 2)}</b><span>${t("stat_total")}</span></div>
+    <div class="stat"><b>${sym}${formatNum(avgAll, 2)}</b><span>${t("stat_avg_all")}</span></div>
+    <div class="stat"><b>${sym}${formatNum(avgPaid, 2)}</b><span>${t("stat_avg_paid")}</span></div>
+    <div class="stat"><b>${formatNum(determined.length, 0)} / ${formatNum(finished.length, 0)}</b><span>${t("stat_determined")}</span></div>
   </div>
   ${histImg ? `<h2>${t("chart_title_hist")}</h2><img class="chart" src="${histImg}" alt="${t("chart_title_hist")}">` : ""}
   ${actualScatterImg ? `<h2>${t("chart_title_scatter_actual")}</h2><img class="chart" src="${actualScatterImg}" alt="${t("chart_title_scatter_actual")}">` : ""}
