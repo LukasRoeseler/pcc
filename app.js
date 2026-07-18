@@ -293,6 +293,30 @@ function estimateCost(work) {
   return { cost: null, source: null, oaStatus, note: "OA status unknown, no APC data", journal, field };
 }
 
+const sourceStatsCache = new Map();
+async function getSourceMeanCitedness(sourceId, email) {
+  if (!sourceId) return null;
+  if (sourceStatsCache.has(sourceId)) return sourceStatsCache.get(sourceId);
+  const shortId = sourceId.replace(/^https?:\/\/openalex\.org\//i, "");
+  const params = new URLSearchParams();
+  if (email) params.set("mailto", email);
+  const qs = params.toString();
+  const url = `https://api.openalex.org/sources/${encodeURIComponent(shortId)}${qs ? "?" + qs : ""}`;
+  let value = null;
+  try {
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      value = (data.summary_stats && data.summary_stats["2yr_mean_citedness"]) ?? null;
+    }
+    await sleep(80);
+  } catch (e) {
+    value = null;
+  }
+  sourceStatsCache.set(sourceId, value);
+  return value;
+}
+
 // ---------- ORCID ----------
 async function getOrcidWorks(orcidId) {
   const headers = { Accept: "application/json" };
@@ -323,59 +347,91 @@ async function getOrcidWorks(orcidId) {
   return items;
 }
 
-// ---------- tabs ----------
-document.querySelectorAll(".tab-btn").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.add("hidden"));
-    btn.classList.add("active");
-    document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
-  });
+// ---------- hero: mode toggle ----------
+document.querySelectorAll("#mode-toggle .mode-btn").forEach((btn) => {
+  btn.addEventListener("click", () => setMode(btn.dataset.mode));
+});
+
+function setMode(mode) {
+  document.querySelectorAll("#mode-toggle .mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+  const isOrcid = mode === "orcid";
+  document.getElementById("mode-orcid-wrap").classList.toggle("hidden", !isOrcid);
+  document.getElementById("fetch-orcid-btn").classList.toggle("hidden", !isOrcid);
+  document.getElementById("mode-paste-panel").classList.toggle("hidden", isOrcid);
+}
+
+// ---------- hero: advanced options ----------
+document.getElementById("advanced-toggle").addEventListener("click", () => {
+  document.getElementById("advanced-panel").classList.toggle("hidden");
+});
+
+// ---------- hero: upload card ----------
+document.getElementById("upload-card").addEventListener("click", () => {
+  document.getElementById("file-input").click();
+});
+
+document.getElementById("file-input").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (file) await handleParseFile(file);
+});
+
+// ---------- hero: examples ----------
+document.getElementById("example-list-btn").addEventListener("click", () => {
+  setMode("paste");
+  const demo = [
+    "Munafo, M. R., Nosek, B. A., Bishop, D. V. M., Button, K. S., Chambers, C. D., Percie du Sert, N., Simonsohn, U., Wagenmakers, E. J., Ware, J. J., & Ioannidis, J. P. A. (2017). A manifesto for reproducible science. Nature Human Behaviour, 1, 0021. https://doi.org/10.1038/s41562-016-0021",
+    "Open Science Collaboration. (2015). Estimating the reproducibility of psychological science. Science, 349(6251), aac4716. https://doi.org/10.1126/science.aac4716",
+    "Simmons, J. P., Nelson, L. D., & Simonsohn, U. (2011). False-positive psychology. Psychological Science, 22(11), 1359-1366. https://doi.org/10.1177/0956797611417632",
+  ].join("\n");
+  document.getElementById("ref-textarea").value = demo;
+  handleParseText(demo);
+});
+
+document.getElementById("example-orcid-btn").addEventListener("click", () => {
+  setMode("orcid");
+  document.getElementById("orcid-input").value = "0000-0002-1825-0097";
+  handleFetchOrcid("0000-0002-1825-0097");
 });
 
 // ---------- parse (text/file) flow ----------
-document.getElementById("parse-btn").addEventListener("click", async () => {
-  const btn = document.getElementById("parse-btn");
+document.getElementById("parse-btn").addEventListener("click", () => {
+  handleParseText(document.getElementById("ref-textarea").value);
+});
+
+async function handleParseText(text) {
+  const refs = splitReferences(text);
+  showReviewTextarea(refs);
+}
+
+async function handleParseFile(file) {
+  const btn = document.getElementById("upload-card");
   btn.disabled = true;
-  btn.textContent = "Parsing…";
   try {
-    const fileInput = document.getElementById("file-input");
-    const file = fileInput.files[0];
-    let refs = [];
-
-    if (file) {
-      const ext = file.name.split(".").pop().toLowerCase();
-      if (ext === "bib") {
-        const text = await file.text();
-        const entries = parseBibtex(text);
-        referenceItems = entries.map(bibEntryToItem);
-        showReviewList();
-        return;
-      } else if (ext === "pdf") {
-        const buf = await file.arrayBuffer();
-        const text = await extractPdfText(buf);
-        refs = splitReferences(text);
-      } else if (ext === "docx") {
-        const buf = await file.arrayBuffer();
-        const text = await extractDocxText(buf);
-        refs = splitReferences(text);
-      } else {
-        const text = await file.text();
-        refs = splitReferences(text);
-      }
-    } else {
-      const text = document.getElementById("ref-textarea").value;
-      refs = splitReferences(text);
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (ext === "bib") {
+      const text = await file.text();
+      const entries = parseBibtex(text);
+      referenceItems = entries.map(bibEntryToItem);
+      showReviewList();
+      return;
     }
-
-    showReviewTextarea(refs);
+    let text;
+    if (ext === "pdf") {
+      const buf = await file.arrayBuffer();
+      text = await extractPdfText(buf);
+    } else if (ext === "docx") {
+      const buf = await file.arrayBuffer();
+      text = await extractDocxText(buf);
+    } else {
+      text = await file.text();
+    }
+    showReviewTextarea(splitReferences(text));
   } catch (e) {
-    alert("Could not parse input: " + e.message);
+    alert("Could not parse file: " + e.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = "Parse references";
   }
-});
+}
 
 function showReviewTextarea(refs) {
   document.getElementById("review-section").classList.remove("hidden");
@@ -415,9 +471,12 @@ function escapeHtml(s) {
 }
 
 // ---------- ORCID flow ----------
-document.getElementById("fetch-orcid-btn").addEventListener("click", async () => {
+document.getElementById("fetch-orcid-btn").addEventListener("click", () => {
+  handleFetchOrcid(document.getElementById("orcid-input").value.trim());
+});
+
+async function handleFetchOrcid(orcidRaw) {
   const btn = document.getElementById("fetch-orcid-btn");
-  const orcidRaw = document.getElementById("orcid-input").value.trim();
   const orcid = orcidRaw.replace(/^https?:\/\/orcid\.org\//i, "");
   if (!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(orcid)) {
     alert("Please enter a valid ORCID iD, e.g. 0000-0002-1825-0097");
@@ -440,9 +499,9 @@ document.getElementById("fetch-orcid-btn").addEventListener("click", async () =>
     );
   } finally {
     btn.disabled = false;
-    btn.textContent = "Fetch works from ORCID";
+    btn.textContent = "Fetch works";
   }
-});
+}
 
 // ---------- confirm & calculate ----------
 document.getElementById("confirm-btn").addEventListener("click", async () => {
@@ -477,6 +536,7 @@ async function calculateCosts(items) {
   document.getElementById("confirm-btn").disabled = true;
 
   currentResults = items.map((it) => ({ ...it, status: "pending", doi: it.doi || null }));
+  rowElements = [];
   renderTable();
   updateSummary();
   updateProgress(0, items.length);
@@ -544,6 +604,10 @@ async function processItem(item, index, email, onUpdate) {
   await sleep(120);
 
   const estimate = estimateCost(work);
+  const citedByCount = work && work.cited_by_count != null ? work.cited_by_count : null;
+  const sourceId = work && work.primary_location && work.primary_location.source && work.primary_location.source.id;
+  const meanCitedness = sourceId ? await getSourceMeanCitedness(sourceId, email) : null;
+
   onUpdate(index, {
     status: "done",
     doi,
@@ -555,6 +619,8 @@ async function processItem(item, index, email, onUpdate) {
     journal: estimate.journal,
     field: estimate.field,
     notes: estimate.note,
+    citedByCount,
+    meanCitedness,
   });
 }
 
@@ -570,12 +636,58 @@ function oaBadgeClass(oaStatus) {
   return "oa-" + oaStatus;
 }
 
-function renderTable() {
+let rowElements = [];
+function ensureRows() {
   const tbody = document.getElementById("results-tbody");
+  if (rowElements.length === currentResults.length) return;
   tbody.innerHTML = "";
-  currentResults.forEach((r, i) => {
+  rowElements = currentResults.map(() => {
     const tr = document.createElement("tr");
-    if (r.status === "error") tr.className = "status-error";
+    tr.innerHTML = `
+      <td class="cell-idx"></td>
+      <td class="cell-title"></td>
+      <td class="cell-doi"></td>
+      <td class="cell-oa"></td>
+      <td class="cell-cost cost-cell"></td>
+      <td class="cell-source"></td>
+      <td class="cell-citations num-cell"></td>
+      <td class="cell-meancited num-cell"></td>
+      <td class="cell-altmetric"></td>
+      <td class="cell-notes"></td>
+    `;
+    tbody.appendChild(tr);
+    return tr;
+  });
+}
+
+function initAltmetric(cell, doi) {
+  cell.innerHTML = "";
+  const div = document.createElement("div");
+  div.className = "altmetric-embed";
+  div.setAttribute("data-badge-type", "donut");
+  div.setAttribute("data-badge-popover", "left");
+  div.setAttribute("data-hide-no-mentions", "true");
+  div.setAttribute("data-doi", doi);
+  cell.appendChild(div);
+  if (window._altmetric_embed_init) window._altmetric_embed_init(cell);
+
+  const obs = new MutationObserver(() => {
+    const img = div.querySelector("img");
+    if (img && img.alt) {
+      const m = img.alt.match(/score of ([\d.]+)/i);
+      if (m) cell.dataset.score = m[1];
+      obs.disconnect();
+    }
+  });
+  obs.observe(div, { childList: true, subtree: true });
+  setTimeout(() => obs.disconnect(), 8000);
+}
+
+function renderTable() {
+  ensureRows();
+  currentResults.forEach((r, i) => {
+    const tr = rowElements[i];
+    tr.className = r.status === "error" ? "status-error" : "";
 
     const statusLabel =
       r.status === "pending"
@@ -588,29 +700,34 @@ function renderTable() {
         ? "Error"
         : "";
 
-    const costCell =
-      r.status === "done" ? (r.cost != null ? "$" + r.cost.toFixed(2) : "—") : statusLabel;
-
-    const doiCell = r.doi
+    const costText = r.status === "done" ? (r.cost != null ? "$" + r.cost.toFixed(2) : "—") : statusLabel;
+    const doiHtml = r.doi
       ? `<a href="https://doi.org/${encodeURIComponent(r.doi)}" target="_blank" rel="noopener">${escapeHtml(r.doi)}</a>`
       : "—";
+    const oaHtml =
+      r.status === "done" && r.oaStatus ? `<span class="badge ${oaBadgeClass(r.oaStatus)}">${escapeHtml(r.oaStatus)}</span>` : r.status === "done" ? "—" : "";
+    const notesHtml =
+      escapeHtml(r.notes || "") +
+      (r.journal || r.field ? `<br><span class="hint-inline">${escapeHtml([r.journal, r.field].filter(Boolean).join(" · "))}</span>` : "");
 
-    const oaCell = r.status === "done" && r.oaStatus ? `<span class="badge ${oaBadgeClass(r.oaStatus)}">${escapeHtml(r.oaStatus)}</span>` : r.status === "done" ? "—" : "";
+    tr.querySelector(".cell-idx").textContent = i + 1;
+    tr.querySelector(".cell-title").textContent = r.matchedTitle || r.raw;
+    tr.querySelector(".cell-doi").innerHTML = doiHtml;
+    tr.querySelector(".cell-oa").innerHTML = oaHtml;
+    tr.querySelector(".cell-cost").textContent = costText;
+    tr.querySelector(".cell-source").textContent = r.source || "";
+    tr.querySelector(".cell-citations").textContent = r.status === "done" ? (r.citedByCount != null ? r.citedByCount.toLocaleString("en-US") : "—") : "";
+    tr.querySelector(".cell-meancited").textContent = r.status === "done" ? (r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "—") : "";
+    tr.querySelector(".cell-notes").innerHTML = notesHtml;
 
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${escapeHtml(r.matchedTitle || r.raw)}</td>
-      <td>${doiCell}</td>
-      <td>${oaCell}</td>
-      <td class="cost-cell">${costCell}</td>
-      <td>${escapeHtml(r.source || "")}</td>
-      <td>${escapeHtml(r.notes || "")}${
-        r.journal || r.field
-          ? `<br><span class="hint-inline">${escapeHtml([r.journal, r.field].filter(Boolean).join(" · "))}</span>`
-          : ""
-      }</td>
-    `;
-    tbody.appendChild(tr);
+    const altCell = tr.querySelector(".cell-altmetric");
+    if (r.doi && !altCell.dataset.initialized) {
+      altCell.dataset.initialized = "1";
+      initAltmetric(altCell, r.doi);
+    } else if (!r.doi && r.status === "done" && !altCell.dataset.initialized) {
+      altCell.dataset.initialized = "1";
+      altCell.textContent = "—";
+    }
   });
 }
 
@@ -732,9 +849,18 @@ function renderHistogram(costs) {
   }
 }
 
+function getAltmetricScore(i) {
+  const cell = rowElements[i] && rowElements[i].querySelector(".cell-altmetric");
+  const v = cell && cell.dataset.score;
+  return v ? parseFloat(v) : null;
+}
+
 // ---------- CSV export ----------
 document.getElementById("export-csv-btn").addEventListener("click", () => {
-  const header = ["#", "Reference", "DOI", "OA type", "APC cost (USD)", "Price source", "Journal", "Field", "Notes"];
+  const header = [
+    "#", "Reference", "DOI", "OA type", "APC cost (USD)", "Price source",
+    "Citations", "Journal mean citedness (2yr)", "Altmetric score", "Journal", "Field", "Notes",
+  ];
   const rows = currentResults.map((r, i) => [
     i + 1,
     r.matchedTitle || r.raw,
@@ -742,10 +868,87 @@ document.getElementById("export-csv-btn").addEventListener("click", () => {
     r.oaStatus || "",
     r.cost != null ? r.cost.toFixed(2) : "",
     r.source || "",
+    r.citedByCount != null ? r.citedByCount : "",
+    r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "",
+    getAltmetricScore(i) ?? "",
     r.journal || "",
     r.field || "",
     r.notes || "",
   ]);
   const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
   downloadFile(csv, "publication-costs.csv", "text/csv;charset=utf-8");
+});
+
+// ---------- HTML export ----------
+document.getElementById("export-html-btn").addEventListener("click", () => {
+  const determined = currentResults.filter((r) => r.status === "done" && r.cost != null);
+  const totalCost = determined.reduce((s, r) => s + r.cost, 0);
+  const avgAll = determined.length ? totalCost / determined.length : 0;
+  const paidOnly = determined.filter((r) => r.cost > 0);
+  const avgPaid = paidOnly.length ? paidOnly.reduce((s, r) => s + r.cost, 0) / paidOnly.length : 0;
+  const chartImg = costChart ? costChart.toBase64Image() : null;
+
+  const rowsHtml = currentResults
+    .map((r, i) => {
+      const altScore = getAltmetricScore(i);
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(r.matchedTitle || r.raw)}</td>
+        <td>${r.doi ? `<a href="https://doi.org/${escapeHtml(r.doi)}">${escapeHtml(r.doi)}</a>` : "—"}</td>
+        <td>${escapeHtml(r.oaStatus || "—")}</td>
+        <td>${r.cost != null ? "$" + r.cost.toFixed(2) : "—"}</td>
+        <td>${escapeHtml(r.source || "")}</td>
+        <td>${r.citedByCount != null ? r.citedByCount.toLocaleString("en-US") : "—"}</td>
+        <td>${r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "—"}</td>
+        <td>${altScore != null ? altScore : "—"}</td>
+        <td>${escapeHtml([r.journal, r.field].filter(Boolean).join(" · "))}</td>
+        <td>${escapeHtml(r.notes || "")}</td>
+      </tr>`;
+    })
+    .join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Publication Cost Report</title>
+<style>
+  body { font-family: "Source Sans 3", Arial, sans-serif; color: #262b30; background: #f4f7f9; margin: 0; padding: 2rem; }
+  h1 { font-family: Georgia, serif; color: #1583ad; margin-bottom: 0.2rem; }
+  .generated { color: #8b95a0; font-size: 0.85rem; margin-bottom: 1.2rem; }
+  .stats { display: flex; gap: 14px; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
+  .stat { background: #eaf4f9; border-radius: 8px; padding: 12px 18px; text-align: center; min-width: 150px; }
+  .stat b { display: block; font-size: 1.3rem; color: #0f6f96; }
+  .stat span { font-size: 0.78rem; color: #55606b; }
+  img.chart { max-width: 100%; margin: 0 0 1.5rem; background: #fff; border-radius: 8px; padding: 10px; }
+  table { border-collapse: collapse; width: 100%; background: #fff; font-size: 12.5px; box-shadow: 0 1px 3px rgba(15,40,55,0.07); }
+  th, td { padding: 7px 9px; border-bottom: 1px solid #e6ebee; text-align: left; vertical-align: top; }
+  th { background: #f4f7f9; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.02em; color: #3d4857; }
+  a { color: #1583ad; }
+</style>
+</head>
+<body>
+  <h1>Publication Cost Report</h1>
+  <p class="generated">Generated by the <a href="https://github.com/LukasRoeseler/pcc">Publication Cost Calculator</a> on ${new Date().toLocaleString()}.</p>
+  <div class="stats">
+    <div class="stat"><b>$${totalCost.toFixed(2)}</b><span>Total cost (USD)</span></div>
+    <div class="stat"><b>$${avgAll.toFixed(2)}</b><span>Average per article (all determined)</span></div>
+    <div class="stat"><b>$${avgPaid.toFixed(2)}</b><span>Average per article with an APC &gt; 0</span></div>
+    <div class="stat"><b>${determined.length} / ${currentResults.length}</b><span>Articles with a determined cost</span></div>
+  </div>
+  ${chartImg ? `<img class="chart" src="${chartImg}" alt="Histogram of APC cost across priced articles">` : ""}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th><th>Reference / matched title</th><th>DOI</th><th>OA type</th><th>APC cost (USD)</th>
+        <th>Price source</th><th>Citations</th><th>Journal mean citedness (2yr)</th><th>Altmetric</th>
+        <th>Journal / field</th><th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>${rowsHtml}</tbody>
+  </table>
+</body>
+</html>`;
+
+  downloadFile(html, "publication-cost-report.html", "text/html;charset=utf-8");
 });

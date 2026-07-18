@@ -4,71 +4,106 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Publication Cost Calculator</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M20 27v-6a10 10 0 0 1 19-4.5' stroke='%23eaf3ee' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3Crect x='13' y='27' width='30' height='25' rx='5' fill='%23eaf3ee'/%3E%3Ccircle cx='28' cy='38.5' r='3.6' fill='%23234f38'/%3E%3Crect x='26.3' y='38.5' width='3.4' height='8' rx='1.4' fill='%23234f38'/%3E%3Ccircle cx='46' cy='46' r='14' fill='%23f4c95d' stroke='%231d5b3f' stroke-width='2'/%3E%3Ctext x='46' y='51.5' font-size='15' font-weight='700' text-anchor='middle' fill='%23234f38' font-family='Georgia,serif'%3E$%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M20 27v-6a10 10 0 0 1 19-4.5' stroke='%23eaf4f9' stroke-width='5' stroke-linecap='round' fill='none'/%3E%3Crect x='13' y='27' width='30' height='25' rx='5' fill='%23eaf4f9'/%3E%3Ccircle cx='28' cy='38.5' r='3.6' fill='%230f6f96'/%3E%3Crect x='26.3' y='38.5' width='3.4' height='8' rx='1.4' fill='%230f6f96'/%3E%3Ccircle cx='46' cy='46' r='14' fill='%231ba3d1' stroke='%230f6f96' stroke-width='2'/%3E%3Ctext x='46' y='51.5' font-size='15' font-weight='700' text-anchor='middle' fill='%23fff' font-family='Georgia,serif'%3E$%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Domine:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header class="site-header">
-  <div class="wrap header-row">
-    <svg class="logo" width="48" height="48" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M20 27v-6a10 10 0 0 1 19-4.5" stroke="#eaf3ee" stroke-width="5" stroke-linecap="round" fill="none"/>
-      <rect x="13" y="27" width="30" height="25" rx="5" fill="#eaf3ee"/>
-      <circle cx="28" cy="38.5" r="3.6" fill="#234f38"/>
-      <rect x="26.3" y="38.5" width="3.4" height="8" rx="1.4" fill="#234f38"/>
-      <circle cx="46" cy="46" r="14" fill="#f4c95d" stroke="#1d5b3f" stroke-width="2"/>
-      <text x="46" y="51.5" font-size="15" font-weight="700" text-anchor="middle" fill="#234f38" font-family="Georgia, serif">$</text>
-    </svg>
-    <div>
-      <h1>Publication Cost Calculator</h1>
-      <p class="tagline">Estimate the article processing charges (APCs) behind a reference list — total, average, and per-article breakdown.</p>
-    </div>
-  </div>
-</header>
-
 <main class="wrap">
 
-  <section class="card">
-    <h2>1. Contact email <span class="optional">(optional, recommended)</span></h2>
-    <p class="hint">Crossref and OpenAlex give faster, more reliable service to requests that identify a contact ("polite pool"). Your email is only sent to those APIs directly from your browser — never stored anywhere.</p>
-    <input type="email" id="contact-email" placeholder="you@university.edu">
-  </section>
-
-  <section class="card">
-    <h2>2. Provide your reference list</h2>
-
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="text">Paste / Upload file</button>
-      <button class="tab-btn" data-tab="orcid">ORCID iD</button>
+  <section class="welcome-state">
+    <div class="welcome-icon">
+      <svg width="30" height="30" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M20 27v-6a10 10 0 0 1 19-4.5" stroke="#eaf4f9" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <rect x="13" y="27" width="30" height="25" rx="5" fill="#eaf4f9"/>
+        <circle cx="28" cy="38.5" r="3.6" fill="#0f6f96"/>
+        <rect x="26.3" y="38.5" width="3.4" height="8" rx="1.4" fill="#0f6f96"/>
+        <circle cx="46" cy="46" r="14" fill="#1ba3d1" stroke="#0f6f96" stroke-width="2"/>
+        <text x="46" y="51.5" font-size="15" font-weight="700" text-anchor="middle" fill="#fff" font-family="Georgia, serif">$</text>
+      </svg>
     </div>
+    <h1>Publication Cost Calculator</h1>
+    <p>Paste a reference list, upload a file, or enter an ORCID iD to see article processing charges, OA type, citations, and Altmetric attention for every publication.</p>
 
-    <div class="tab-panel" id="tab-text">
-      <label for="ref-textarea">Paste references (one per line, or a numbered list)</label>
-      <textarea id="ref-textarea" rows="8" placeholder="1. Smith, J. (2022). Title of article. Journal Name, 12(3), 45-67. https://doi.org/10.xxxx/xxxxx&#10;2. ..."></textarea>
-
-      <div class="upload-row">
-        <label for="file-input" class="file-label">Or upload a file</label>
-        <input type="file" id="file-input" accept=".txt,.pdf,.docx,.bib">
-        <span class="hint-inline">.txt, .pdf, .docx, or .bib (BibTeX)</span>
+    <div class="welcome-search" id="welcome-search">
+      <div class="search-mode-toggle" id="mode-toggle">
+        <button type="button" class="mode-btn active" data-mode="paste">Paste / Upload</button>
+        <button type="button" class="mode-btn" data-mode="orcid">ORCID iD</button>
       </div>
 
-      <div class="callout">
-        <strong>Coming from Google Scholar?</strong> Scholar has no public API, so this tool can't fetch a profile automatically. Instead: open your Scholar profile → select all articles (checkbox at top) → <em>Export</em> → <em>BibTeX</em> → upload the downloaded <code>.bib</code> file above.
+      <div class="tag-input-wrap hidden" id="mode-orcid-wrap">
+        <input type="text" id="orcid-input" placeholder="0000-0002-1825-0097">
       </div>
-
-      <button id="parse-btn" class="btn-primary">Parse references</button>
+      <button type="button" class="welcome-search-btn hidden" id="fetch-orcid-btn">Fetch works</button>
     </div>
 
-    <div class="tab-panel hidden" id="tab-orcid">
-      <label for="orcid-input">ORCID iD</label>
-      <input type="text" id="orcid-input" placeholder="0000-0002-1825-0097">
-      <button id="fetch-orcid-btn" class="btn-primary">Fetch works from ORCID</button>
-      <p class="hint">Pulls your public works list directly from the ORCID API. Only entries with a DOI can be priced; others will fall back to a title-based search.</p>
+    <div class="welcome-paste-panel" id="mode-paste-panel">
+      <textarea id="ref-textarea" rows="6" placeholder="1. Smith, J. (2022). Title of article. Journal Name, 12(3), 45-67. https://doi.org/10.xxxx/xxxxx&#10;2. ..."></textarea>
+      <div class="welcome-paste-actions">
+        <span class="hint-inline" id="parse-hint">One reference per line, or a numbered list</span>
+        <button type="button" id="parse-btn" class="welcome-search-btn">Parse references</button>
+      </div>
     </div>
+
+    <div class="welcome-import-or-divider"><span>or</span></div>
+
+    <div class="welcome-action-cards">
+      <button type="button" class="welcome-import-card" id="advanced-toggle">
+        <span class="welcome-import-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+        </span>
+        <span class="welcome-import-card-body">
+          <span class="welcome-import-card-title">Advanced options</span>
+          <span class="welcome-import-card-sub">Add a contact email for faster Crossref/OpenAlex service</span>
+        </span>
+        <span class="welcome-import-card-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="9 6 15 12 9 18"/></svg>
+        </span>
+      </button>
+
+      <div class="welcome-cards-or"><span>or</span></div>
+
+      <button type="button" class="welcome-import-card" id="upload-card">
+        <span class="welcome-import-card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </span>
+        <span class="welcome-import-card-body">
+          <span class="welcome-import-card-title">Upload a file</span>
+          <span class="welcome-import-card-sub">.txt, .pdf, .docx, or .bib — incl. Google Scholar/Zotero BibTeX exports</span>
+        </span>
+        <span class="welcome-import-card-arrow">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="9 6 15 12 9 18"/></svg>
+        </span>
+      </button>
+      <input type="file" id="file-input" accept=".txt,.pdf,.docx,.bib" class="visually-hidden">
+    </div>
+
+    <div class="welcome-advanced hidden" id="advanced-panel">
+      <label for="contact-email">Contact email <span class="optional">(optional)</span></label>
+      <input type="email" id="contact-email" placeholder="you@university.edu">
+      <p class="hint">Crossref and OpenAlex serve requests faster when they can identify a contact ("polite pool"). Sent only to those APIs, directly from your browser.</p>
+    </div>
+
+    <div class="welcome-examples">
+      <span class="welcome-examples-label">Try it</span>
+      <button type="button" class="welcome-doi" id="example-list-btn">
+        <span>Load an example reference list</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
+      <button type="button" class="welcome-doi" id="example-orcid-btn">
+        <span>Try ORCID 0000-0002-1825-0097</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="9 6 15 12 9 18"/></svg>
+      </button>
+    </div>
+
+    <p class="welcome-footnote">All processing happens in your browser. Data comes from the public <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (incl. <a href="https://openapc.net" target="_blank" rel="noopener">OpenAPC</a>), <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a>, and <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a> APIs — nothing is stored on a server. See the <a href="README.md">README</a> for methodology.</p>
   </section>
 
   <section class="card hidden" id="review-section">
-    <h2>3. Review &amp; confirm</h2>
+    <h2>Review &amp; confirm</h2>
     <div id="review-text-mode">
       <p class="hint">We split your input into <strong id="review-count-text">0</strong> references. Edit below if anything looks wrong (one reference per line), then confirm.</p>
       <textarea id="review-textarea" rows="10"></textarea>
@@ -116,6 +151,7 @@
 
     <div class="table-actions">
       <button id="export-csv-btn" class="btn-secondary">Export CSV</button>
+      <button id="export-html-btn" class="btn-secondary">Export HTML report</button>
     </div>
 
     <div class="table-scroll">
@@ -128,6 +164,9 @@
             <th>OA type</th>
             <th>APC cost (USD)</th>
             <th>Price source</th>
+            <th>Citations</th>
+            <th>Journal mean citedness (2yr)</th>
+            <th>Altmetric</th>
             <th>Notes</th>
           </tr>
         </thead>
@@ -140,13 +179,14 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <p>All processing happens in your browser. References are sent only to the public <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>, and <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a> public APIs — nothing is stored on a server. See the <a href="README.md">README</a> for methodology and limitations.</p>
+    <p>Publication Cost Calculator — <a href="README.md">documentation &amp; methodology</a>.</p>
   </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

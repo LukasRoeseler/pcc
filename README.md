@@ -1,8 +1,9 @@
 # Publication Cost Calculator
 
 A static, client-side web tool that estimates the article processing charges
-(APCs) behind a reference list: total cost, average cost, and a per-article
-breakdown with OA type and the data source behind each price.
+(APCs) behind a reference list: total cost, average cost, a cost-distribution
+histogram, and a per-article breakdown with OA type, price source, citation
+count, journal mean citedness, and Altmetric attention.
 
 Everything runs in the browser. No backend, no build step, no data storage —
 just static files you can host on GitHub Pages.
@@ -36,9 +37,23 @@ No secrets, API keys, or server config are required.
 3. **Review & confirm** the parsed list (you can edit/deselect entries), then
    click **Calculate costs**.
 4. Read the **Results**: total cost, average cost per article, average cost
-   per article that actually had an APC (excludes free/non-APC routes), and
-   how many articles could be priced — plus a full per-article table you can
-   export to CSV.
+   per article that actually had an APC (excludes free/non-APC routes), how
+   many articles could be priced, a cost-distribution histogram, and a full
+   per-article table you can export as **CSV** or as a self-contained **HTML
+   report** (includes the histogram image, so it's shareable as a single file).
+
+## Citation & attention metrics
+
+Alongside cost, each row also shows:
+
+- **Citations** — the article's own citation count (`cited_by_count` from OpenAlex).
+- **Journal mean citedness (2yr)** — the hosting journal's 2-year mean
+  citedness (OpenAlex `summary_stats.2yr_mean_citedness`, comparable in spirit
+  to a journal impact factor), fetched once per journal and cached.
+- **Altmetric** — the journal article's Altmetric Attention Score, shown as
+  Altmetric's official donut badge (click through for the full breakdown).
+  Altmetric's raw API requires a paid key, so this uses their free, officially
+  supported embeddable badge widget instead.
 
 ## How pricing works
 
