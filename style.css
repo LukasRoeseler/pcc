@@ -125,6 +125,24 @@ a { color: var(--primary); }
   max-width: 440px;
 }
 
+.contact-email-row {
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+  margin-bottom: 0.75rem;
+}
+.contact-email-row label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; }
+.contact-email-row input[type="email"] {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  background: var(--white);
+}
+.contact-email-row .hint { margin: 6px 0 0; }
+
 .welcome-search {
   display: flex;
   align-items: center;
@@ -494,7 +512,9 @@ tr.status-error td { color: var(--danger); }
   color: var(--primary-dark);
   white-space: nowrap;
 }
-.badge.oa-diamond { background: #dcf0e6; color: #1c6b45; }
+.badge.oa-diamond { background: #dcf0e6; color: #1c6b45; font-weight: 700; box-shadow: 0 0 0 1px #8fd4ac inset; }
+.badge.oa-preprint { background: #e3f0e9; color: #2f6b52; }
+.badge.retracted { background: #fdeceb; color: #a4291c; font-weight: 700; }
 .badge.oa-gold { background: #f8edd2; color: #8a6511; }
 .badge.oa-hybrid { background: #fbe3d4; color: #963f10; }
 .badge.oa-green { background: #d9edf0; color: #146470; }
@@ -533,6 +553,34 @@ tr.excluded-row .cell-cost { text-decoration: line-through; }
 .glossary-body dd { margin: 2px 0 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
 
 .chart-container-oa { height: 110px; }
+
+.candidate-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+.candidate-header-label { font-size: 0.85rem; color: var(--text-muted); }
+.candidate-header-name { font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; color: var(--primary); }
+.candidate-header a { font-size: 0.85rem; }
+
+.retraction-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #fdeceb;
+  color: #a4291c;
+  border-left: 3px solid #a4291c;
+  padding: 12px 14px;
+  border-radius: 3px;
+  margin: 0 0 16px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.retraction-banner svg { flex-shrink: 0; margin-top: 1px; }
 
 .site-footer {
   padding: 20px 0 40px;

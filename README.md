@@ -3,7 +3,7 @@
 A static, client-side web tool that estimates the article processing charges
 (APCs) behind a reference list: total cost, average cost, cost per citation,
 cost per year since your first publication, a cost-distribution histogram,
-two cost-vs-citations scatter plots, an open-access type breakdown (overall
+two citation-impact scatter plots, an open-access type breakdown (overall
 and by year), a free-PDF-availability chart, and a per-article table with OA
 type, price source, citation count, journal mean citedness, and Altmetric
 attention.
@@ -16,7 +16,7 @@ unfamiliar with APCs, OA types, or these metrics.
 ## Hosting on GitHub Pages
 
 1. Create a new GitHub repository (or a folder in an existing one) and push
-   the contents of this folder (`index.html`, `style.css`, `app.js`).
+   the contents of this folder (`index.html`, `style.css`, `app.js`, `favicon.svg`).
 2. In the repo settings, enable **Pages** and deploy from the branch/folder
    containing these files.
 3. Visit the generated `https://<user>.github.io/<repo>/` URL.
@@ -25,30 +25,30 @@ No secrets, API keys, or server config are required.
 
 ## How to use it
 
-1. **(Optional) Contact email**, in Advanced options: Crossref, OpenAlex, and
-   Unpaywall serve requests faster when they can identify the caller (and
-   Unpaywall requires it at all, to check PDF availability). Your email is
-   sent directly from your browser to those APIs only; it is never stored
-   anywhere.
+1. **(Optional) Contact email**, shown up front above the input area: Crossref,
+   OpenAlex, and Unpaywall serve requests faster when they can identify the
+   caller (and Unpaywall requires it at all, to check PDF availability). Your
+   email is sent directly from your browser to those APIs only; it is never
+   stored anywhere.
 2. **Provide references**, via one of:
    - Paste a reference list (one per line, or a numbered list) into the text box.
    - Upload a `.txt`, `.pdf`, or `.docx` file containing the reference list.
-   - Upload a `.bib` (BibTeX) file.
+   - Upload a `.bib` (BibTeX) file. This is also how to use a Google Scholar
+     library here: Scholar has no public API and blocks client-side access
+     entirely (confirmed: even a bare cross-origin request is rejected), so
+     there is no automatic-fetch mode. Instead, on your Scholar profile, tick
+     the box above your article list to select everything, click **Export**,
+     choose **BibTeX**, and upload the downloaded file here.
    - Enter an **ORCID iD** to pull your public works list directly from
      ORCID. Accepts a bare ID (`0000-0002-1825-0097`), `orcid.org/...`, or a
-     full `https://orcid.org/...` URL.
-   - **Google Scholar**: paste a profile link or user ID. Scholar has no
-     public API, so this tool cannot fetch a profile automatically (client-side
-     scraping would be blocked by CORS and against its terms of service).
-     Instead it extracts the profile ID and shows you exactly what to do: open
-     your profile, select all articles, click Export, choose BibTeX, then
-     upload the downloaded `.bib` file with the Upload option.
+     full `https://orcid.org/...` URL. This also fetches the person's name
+     and checks every work for retractions (see below).
 3. **Review & confirm** the parsed list (you can edit or deselect entries),
    then click **Calculate costs**.
 4. Read the **Results**, and use the per-row **Hide** checkbox in the table
    to remove any article that was matched to the wrong DOI (or that you
-   simply don't want counted) from every total and chart, without deleting
-   your input.
+   simply don't want counted) from every total, chart, and export, without
+   deleting your input.
 
 ## Extra options
 
@@ -67,6 +67,22 @@ No secrets, API keys, or server config are required.
   converted to whichever currency is selected, so an article's tier never
   changes just because you switched currency).
 
+## Using this for a hiring committee (Berufungskommission)
+
+When you fetch works by ORCID iD, the report becomes candidate-oriented:
+
+- The **candidate's name** (from ORCID's public profile) and their **ORCID
+  iD** are shown at the top of the results and in the HTML export title,
+  so anyone reading the report knows whose record it is.
+- Every work is checked against OpenAlex's `is_retracted` flag. If any
+  retracted work is found among the (non-hidden) publications, a prominent
+  warning banner appears above the statistics, and the specific row is
+  marked with a **RETRACTED** badge, in both the on-screen view and the
+  exported HTML report.
+- Use the per-row **Hide** checkbox to remove anything that was matched to
+  the wrong DOI before sharing the report; hidden rows are dropped from
+  every statistic, chart, and export, including the retraction check.
+
 ## Citation, attention, and access metrics
 
 Alongside cost, each row also shows:
@@ -83,6 +99,14 @@ Alongside cost, each row also shows:
   embeddable badge widget instead.
 - **Free PDF availability** (aggregate chart only, requires a contact email):
   checked via [Unpaywall](https://unpaywall.org), regardless of formal OA type.
+  Preprints are always counted as having a PDF, without an extra API call,
+  since their host repositories serve one directly.
+
+The two scatter plots read together: the first plots APC cost against actual
+citations; the second plots the journal's mean citedness against the same
+article's actual citations, so a point above the general trend is
+outperforming its journal's typical citation rate. Both show the paper title
+on hover.
 
 ## How pricing works
 
@@ -103,11 +127,19 @@ For each reference:
      an optional fee the article did not use, so it is ignored there.
    - `open_access.oa_status`: `gold`, `hybrid`, `bronze`, `green`, `closed`,
      or `diamond`.
+   - `type`: used to detect preprints directly (see below).
 3. Cost is assigned as follows:
    - Actual paid APC found: use it.
-   - `diamond` OA (OpenAlex's own classification, or a `gold` journal with no
-     APC pricing on record anywhere): cost is **€0**, since diamond OA is
-     free to read and free to publish.
+   - **Preprint** (`type: "preprint"`, covering arXiv, the OSF preprint family
+     such as PsyArXiv/SocArXiv/MetaArXiv, SSRN, medRxiv, bioRxiv, Zenodo,
+     preprints.org, and similar repositories): cost is **€0**, its own
+     category, and it always counts as having a free PDF.
+   - **Diamond** OA: cost is **€0**, the ideal case, highlighted distinctly
+     from a plain "gold" badge. Detected in three ways, in order: OpenAlex's
+     own `diamond` classification; a `gold`-OA journal with no APC pricing
+     anywhere in OpenAlex's source record; or, when OpenAlex is inconclusive,
+     a fallback lookup in [DOAJ](https://doaj.org) by the journal's ISSN,
+     which lists `has_apc` for every journal it indexes.
    - List-price APC found for a `gold`/`hybrid` article: use it, flagged as a
      list price (the actual amount paid may differ due to waivers, discounts,
      or institutional agreements).
@@ -182,22 +214,27 @@ though it is still list price, not necessarily the amount paid.
   publisher list prices, not verified transactions, unless OpenAlex has an
   OpenAPC record for that specific article.
 - **Google Scholar** requires a manual BibTeX export (see above); there is no
-  way to query a Scholar profile directly from a browser-based tool.
-- **Diamond OA detection is a heuristic** when OpenAlex hasn't classified a
-  work as `diamond` directly: a `gold` OA journal with no APC pricing found
-  anywhere in OpenAlex's records is treated as diamond, which can occasionally
-  be wrong if pricing data is simply missing rather than genuinely absent.
+  automatic-fetch mode, since Scholar has no public API and blocks
+  client-side requests outright.
+- **Diamond OA detection can occasionally be wrong** in the rare case where
+  neither OpenAlex nor DOAJ has pricing data on file, even though the journal
+  actually does charge an APC; it is a best-effort inference layered across
+  three sources, not a guarantee.
+- **Retraction checks depend on OpenAlex's `is_retracted` flag**, which is
+  generally reliable for well-known retraction databases (Retraction Watch,
+  Crossref) but is not a substitute for checking the publisher's own
+  retraction notice before making a decision based on this report.
 - Rate limits: the tool processes a handful of requests at a time and adds a
   small delay between calls to stay within the public, unauthenticated usage
-  limits of Crossref, OpenAlex, ORCID, and Unpaywall. Very large reference
-  lists (in the hundreds) will take a few minutes, and now involve more
-  requests per article than earlier versions of this tool.
+  limits of Crossref, OpenAlex, ORCID, Unpaywall, and DOAJ. Very large
+  reference lists (in the hundreds) will take a few minutes.
 
 ## Data sources
 
 - [Crossref REST API](https://www.crossref.org/documentation/retrieve-metadata/rest-api/): bibliographic search to DOI
-- [OpenAlex API](https://docs.openalex.org/): OA status, APC list/paid prices, citation counts, journal mean citedness
+- [OpenAlex API](https://docs.openalex.org/): OA status, APC list/paid prices, citation counts, journal mean citedness, retraction status, work type
 - [OpenAPC](https://openapc.net): underlying source of OpenAlex's `apc_paid` data
-- [ORCID Public API](https://info.orcid.org/documentation/): public works list by ORCID iD
+- [DOAJ API](https://doaj.org/api/docs): fallback diamond-OA detection by ISSN
+- [ORCID Public API](https://info.orcid.org/documentation/): public works list and person name by ORCID iD
 - [Unpaywall API](https://unpaywall.org/products/api): free PDF availability
 - [Altmetric](https://www.altmetric.com/): attention score badge widget

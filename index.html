@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Publication Cost Calculator</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='24' cy='36' r='19' fill='%23eebb3c' stroke='%23ad7f14' stroke-width='2.5'/%3E%3Ctext x='24' y='43' font-size='20' font-weight='700' text-anchor='middle' fill='%23ad7f14' font-family='Georgia,serif'%3E%24%3C/text%3E%3Ccircle cx='44' cy='22' r='14' fill='%23f6d474' stroke='%23ad7f14' stroke-width='2.5'/%3E%3Ctext x='44' y='27.5' font-size='15' font-weight='700' text-anchor='middle' fill='%23ad7f14' font-family='Georgia,serif'%3E%E2%82%AC%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate icon" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
@@ -35,11 +37,16 @@
     <h1 data-i18n="hero_title">Publication Cost Calculator</h1>
     <p data-i18n="hero_subtitle">Paste a reference list, upload a file, or enter an ORCID iD to see article processing charges, OA type, citations, and Altmetric attention for every publication.</p>
 
+    <div class="contact-email-row">
+      <label for="contact-email" data-i18n="contact_email_label">Contact email <span class="optional" data-i18n="optional">(optional)</span></label>
+      <input type="email" id="contact-email" placeholder="you@university.edu" autocomplete="email">
+      <p class="hint" data-i18n="contact_email_hint">Crossref, OpenAlex, and Unpaywall serve requests faster (and Unpaywall requires it at all) when they can identify a contact. Sent only to those APIs, directly from your browser.</p>
+    </div>
+
     <div class="welcome-search" id="welcome-search">
       <div class="search-mode-toggle" id="mode-toggle" role="group" aria-label="Input mode">
         <button type="button" class="mode-btn active" data-mode="paste" data-i18n="mode_paste">Paste / Upload</button>
         <button type="button" class="mode-btn" data-mode="orcid" data-i18n="mode_orcid">ORCID iD</button>
-        <button type="button" class="mode-btn" data-mode="scholar" data-i18n="mode_scholar">Google Scholar</button>
       </div>
 
       <div class="tag-input-wrap hidden" id="mode-orcid-wrap">
@@ -47,14 +54,7 @@
         <input type="text" id="orcid-input" placeholder="0000-0002-1825-0097 or orcid.org/0000-0002-1825-0097" inputmode="text" autocomplete="off">
       </div>
       <button type="button" class="welcome-search-btn hidden" id="fetch-orcid-btn" data-i18n="fetch_orcid_btn">Fetch works</button>
-
-      <div class="tag-input-wrap hidden" id="mode-scholar-wrap">
-        <label for="scholar-input" class="visually-hidden">Google Scholar profile ID or link</label>
-        <input type="text" id="scholar-input" placeholder="scholar.google.com/citations?user=... or just the ID" inputmode="text" autocomplete="off">
-      </div>
-      <button type="button" class="welcome-search-btn hidden" id="scholar-btn" data-i18n="scholar_btn">Get instructions</button>
     </div>
-    <p class="hint scholar-note hidden" id="scholar-note"></p>
 
     <div class="welcome-paste-panel" id="mode-paste-panel">
       <label for="ref-textarea" class="visually-hidden">References</label>
@@ -74,7 +74,7 @@
         </span>
         <span class="welcome-import-card-body">
           <span class="welcome-import-card-title" data-i18n="advanced_title">Advanced options</span>
-          <span class="welcome-import-card-sub" data-i18n="advanced_sub">Contact email and first-author filter</span>
+          <span class="welcome-import-card-sub" data-i18n="advanced_sub">First-author filter</span>
         </span>
         <span class="welcome-import-card-arrow" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="9 6 15 12 9 18"/></svg>
@@ -99,11 +99,6 @@
     </div>
 
     <div class="welcome-advanced hidden" id="advanced-panel">
-      <div class="field-row">
-        <label for="contact-email" data-i18n="contact_email_label">Contact email <span class="optional" data-i18n="optional">(optional)</span></label>
-        <input type="email" id="contact-email" placeholder="you@university.edu" autocomplete="email">
-        <p class="hint" data-i18n="contact_email_hint">Crossref and OpenAlex serve requests faster when they can identify a contact ("polite pool"). Sent only to those APIs, directly from your browser.</p>
-      </div>
       <div class="field-row">
         <label for="user-orcid-input" data-i18n="your_orcid_label">Your ORCID iD (optional, for first-author filter)</label>
         <input type="text" id="user-orcid-input" placeholder="0000-0002-1825-0097" autocomplete="off">
@@ -161,6 +156,16 @@
   <section class="card hidden" id="results-section">
     <h2 data-i18n="results_title">Results</h2>
 
+    <div class="candidate-header hidden" id="candidate-header">
+      <span class="candidate-header-label" data-i18n="candidate_report_label">Report for</span>
+      <span class="candidate-header-name" id="candidate-name"></span>
+      <a id="candidate-orcid-link" href="#" target="_blank" rel="noopener"></a>
+    </div>
+    <div class="retraction-banner hidden" id="retraction-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span id="retraction-banner-text"></span>
+    </div>
+
     <div class="summary-grid">
       <div class="stat">
         <span class="stat-value" id="stat-total-cost">–</span>
@@ -201,11 +206,11 @@
     </div>
     <p class="hint chart-caption" data-i18n="chart_caption_scatter_actual">Each dot is one article: its APC cost against how many times it has actually been cited.</p>
 
-    <h3 class="chart-title" data-i18n="chart_title_scatter_expected">Cost vs. journal mean citedness</h3>
+    <h3 class="chart-title" data-i18n="chart_title_scatter_expected">Journal mean citedness vs. actual citations</h3>
     <div class="chart-container">
-      <canvas id="cost-expected-scatter" role="img" aria-label="Scatter plot of APC cost against the hosting journal's mean citedness"></canvas>
+      <canvas id="cost-expected-scatter" role="img" aria-label="Scatter plot of the hosting journal's mean citedness against actual citations"></canvas>
     </div>
-    <p class="hint chart-caption" data-i18n="chart_caption_scatter_expected">Each dot is one article: its APC cost against its journal's mean citedness, a snapshot of that journal's average citation rate over its most recent tracked 2-year window, not a prediction for this specific article.</p>
+    <p class="hint chart-caption" data-i18n="chart_caption_scatter_expected">Each dot is one article: its journal's mean citedness against how many times this specific article has actually been cited.</p>
 
     <h3 class="chart-title" data-i18n="chart_title_oa">Open access type breakdown</h3>
     <div class="chart-container chart-container-oa">
