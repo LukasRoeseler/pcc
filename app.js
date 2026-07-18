@@ -8,9 +8,345 @@ if (window.pdfjsLib) {
     "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
 }
 
-// ---------- state ----------
+// ---------- global state ----------
 let referenceItems = []; // { raw, doi, searchQuery, include }
 let currentResults = [];
+let currentLang = "en";
+let currentCurrency = "EUR";
+let firstAuthorOnly = false;
+let userOrcidNorm = "";
+const exchangeRates = { EUR: 0.92, GBP: 0.78 }; // per 1 USD; overwritten by live rates if available
+const CURRENCY_SYMBOLS = { USD: "$", EUR: "€", GBP: "£" };
+
+// ================================================================
+// i18n
+// ================================================================
+const TRANSLATIONS = {
+  currency_label: { en: "Currency", de: "Währung" },
+  hero_title: { en: "Publication Cost Calculator", de: "Publication Cost Calculator" },
+  hero_subtitle: {
+    en: "Paste a reference list, upload a file, or enter an ORCID iD to see article processing charges, OA type, citations, and Altmetric attention for every publication.",
+    de: "Fügen Sie eine Literaturliste ein, laden Sie eine Datei hoch oder geben Sie eine ORCID-iD ein, um für jede Publikation Publikationsgebühren (APCs), OA-Typ, Zitationen und Altmetric-Aufmerksamkeit zu sehen.",
+  },
+  mode_paste: { en: "Paste / Upload", de: "Einfügen / Hochladen" },
+  mode_orcid: { en: "ORCID iD", de: "ORCID-iD" },
+  paste_hint: { en: "One reference per line, or a numbered list", de: "Eine Referenz pro Zeile oder eine nummerierte Liste" },
+  parse_btn: { en: "Parse references", de: "Referenzen einlesen" },
+  fetch_orcid_btn: { en: "Fetch works", de: "Werke abrufen" },
+  or_divider: { en: "or", de: "oder" },
+  advanced_title: { en: "Advanced options", de: "Erweiterte Optionen" },
+  advanced_sub: { en: "Contact email, currency, and first-author filter", de: "E-Mail-Kontakt, Währung und Erstautorenschafts-Filter" },
+  upload_title: { en: "Upload a file", de: "Datei hochladen" },
+  upload_sub: {
+    en: ".txt, .pdf, .docx, or .bib — incl. Google Scholar/Zotero BibTeX exports",
+    de: ".txt, .pdf, .docx oder .bib – auch BibTeX-Exporte aus Google Scholar/Zotero",
+  },
+  contact_email_label: { en: "Contact email", de: "Kontakt-E-Mail" },
+  optional: { en: "(optional)", de: "(optional)" },
+  contact_email_hint: {
+    en: 'Crossref and OpenAlex serve requests faster when they can identify a contact ("polite pool"). Sent only to those APIs, directly from your browser.',
+    de: 'Crossref und OpenAlex bearbeiten Anfragen schneller, wenn ein Kontakt angegeben ist ("polite pool"). Wird nur direkt aus Ihrem Browser an diese APIs gesendet.',
+  },
+  your_orcid_label: { en: "Your ORCID iD (optional, for first-author filter)", de: "Ihre ORCID-iD (optional, für Erstautorenschafts-Filter)" },
+  first_author_toggle_label: { en: "Count first-authorship papers only towards costs", de: "Nur Erstautorenschaften in die Kosten einrechnen" },
+  first_author_hint: {
+    en: "Uses OpenAlex's author-position data matched against your ORCID iD above.",
+    de: "Nutzt die Autor:innen-Positionsangaben von OpenAlex, abgeglichen mit Ihrer ORCID-iD oben.",
+  },
+  first_author_missing_orcid: {
+    en: "Enter your ORCID iD above to use this filter — showing all articles for now.",
+    de: "Geben Sie oben Ihre ORCID-iD ein, um diesen Filter zu nutzen — momentan werden alle Artikel gezeigt.",
+  },
+  first_author_active_note: {
+    en: "Showing costs for first-authored articles only. Other rows stay visible below, dimmed and struck through.",
+    de: "Es werden nur Kosten für Artikel mit Erstautorenschaft gezeigt. Andere Zeilen bleiben unten sichtbar, abgeblendet und durchgestrichen.",
+  },
+  examples_label: { en: "Try it", de: "Ausprobieren" },
+  example_list_btn: { en: "Load an example reference list", de: "Beispiel-Literaturliste laden" },
+  example_orcid_btn: { en: "Try ORCID 0000-0002-1825-0097", de: "ORCID 0000-0002-1825-0097 testen" },
+  glossary_title: { en: "What do these terms mean?", de: "Was bedeuten diese Begriffe?" },
+  review_title: { en: "Review & confirm", de: "Überprüfen & bestätigen" },
+  review_hint_text: {
+    en: "We split your input into {n} references. Edit below if anything looks wrong (one reference per line), then confirm.",
+    de: "Ihre Eingabe wurde in {n} Referenzen aufgeteilt. Bei Bedarf unten korrigieren (eine Referenz pro Zeile) und dann bestätigen.",
+  },
+  review_hint_list: {
+    en: "Found {n} works. Untick anything you don't want priced.",
+    de: "{n} Werke gefunden. Entfernen Sie das Häkchen bei allem, das nicht bepreist werden soll.",
+  },
+  confirm_btn: { en: "Calculate costs", de: "Kosten berechnen" },
+  progress_title: { en: "Processing…", de: "Verarbeitung…" },
+  progress_label: { en: "{done} / {total} processed", de: "{done} / {total} verarbeitet" },
+  results_title: { en: "Results", de: "Ergebnisse" },
+  stat_total: { en: "Total cost", de: "Gesamtkosten" },
+  stat_avg_all: { en: "Average per article (all determined)", de: "Ø pro Artikel (alle bestimmten)" },
+  stat_avg_paid: { en: "Average per article with an APC > 0", de: "Ø pro Artikel mit APC > 0" },
+  stat_determined: { en: "Articles with a determined cost", de: "Artikel mit bestimmten Kosten" },
+  stat_cost_per_citation: { en: "Cost per citation", de: "Kosten pro Zitation" },
+  chart_title_hist: { en: "Cost distribution", de: "Kostenverteilung" },
+  chart_caption_hist: {
+    en: "Distribution of APC cost across {n} priced article{plural}. Dashed lines mark the mean and median. Full values are in the table below.",
+    de: "Verteilung der APC-Kosten über {n} bepreiste Artikel. Gestrichelte Linien markieren Mittelwert und Median. Alle Werte stehen in der Tabelle unten.",
+  },
+  chart_title_scatter: { en: "Cost vs. citation impact", de: "Kosten vs. Zitationswirkung" },
+  chart_caption_scatter: {
+    en: "Each dot is one article. Blue = actual citations; orange = expected citations, a proxy based on the hosting journal's mean citedness (not an individual prediction).",
+    de: "Jeder Punkt ist ein Artikel. Blau = tatsächliche Zitationen; Orange = erwartete Zitationen, ein Näherungswert auf Basis der durchschnittlichen Zitierhäufigkeit der Zeitschrift (keine Vorhersage für den Einzelartikel).",
+  },
+  chart_title_oa: { en: "Open access type breakdown", de: "Open-Access-Typ-Verteilung" },
+  export_csv_btn: { en: "Export CSV", de: "CSV exportieren" },
+  export_html_btn: { en: "Export HTML report", de: "HTML-Bericht exportieren" },
+  th_ref: { en: "Reference / matched title", de: "Referenz / gefundener Titel" },
+  th_oa: { en: "OA type", de: "OA-Typ" },
+  th_cost: { en: "APC cost", de: "APC-Kosten" },
+  th_source: { en: "Price source", de: "Preisquelle" },
+  th_citations: { en: "Citations", de: "Zitationen" },
+  th_meancited: { en: "Journal mean citedness (2yr)", de: "Ø Zitierhäufigkeit der Zeitschrift (2 J.)" },
+  th_altmetric: { en: "Altmetric", de: "Altmetric" },
+  th_notes: { en: "Notes", de: "Anmerkungen" },
+  status_waiting: { en: "Waiting…", de: "Wartet…" },
+  status_resolving: { en: "Resolving DOI…", de: "DOI wird ermittelt…" },
+  status_fetching: { en: "Fetching cost…", de: "Kosten werden abgerufen…" },
+  status_error: { en: "Error", de: "Fehler" },
+  src_apc_paid: {
+    en: "OpenAlex apc_paid (actual payment record, via OpenAPC)",
+    de: "OpenAlex apc_paid (tatsächlich gezahlter Betrag, über OpenAPC)",
+  },
+  src_apc_list: { en: "OpenAlex apc_list (journal list price{year})", de: "OpenAlex apc_list (Listenpreis der Zeitschrift{year})" },
+  src_apc_list_year: { en: " in {year}", de: " im Jahr {year}" },
+  src_inferred: { en: "Inferred: non-gold/hybrid OA route", de: "Abgeleitet: kein Gold-/Hybrid-OA-Weg" },
+  note_no_openalex: { en: "No OpenAlex record found for this DOI", de: "Kein OpenAlex-Eintrag für diese DOI gefunden" },
+  note_list_price_caveat: {
+    en: "List price — actual amount paid may differ (waivers, discounts, institutional agreements)",
+    de: "Listenpreis — der tatsächlich gezahlte Betrag kann abweichen (Erlasse, Rabatte, institutionelle Vereinbarungen)",
+  },
+  note_oa_no_apc: { en: "Open access but no APC price data available", de: "Open Access, aber keine APC-Preisdaten verfügbar" },
+  note_inferred_caveat: {
+    en: "Typically no APC for this route (subscription/self-archived/bronze) — not independently verified",
+    de: "Für diesen Weg fällt in der Regel keine APC an (Abo/Selbstarchivierung/Bronze) — nicht unabhängig geprüft",
+  },
+  note_oa_unknown: { en: "OA status unknown, no APC data", de: "OA-Status unbekannt, keine APC-Daten" },
+  note_no_doi: { en: "No matching DOI found", de: "Keine passende DOI gefunden" },
+  note_excluded_not_first_author: {
+    en: "Excluded from totals — not confirmed first author",
+    de: "Von den Summen ausgeschlossen — Erstautorenschaft nicht bestätigt",
+  },
+  note_crossref_failed_prefix: { en: "Crossref lookup failed: ", de: "Crossref-Suche fehlgeschlagen: " },
+  note_openalex_failed_prefix: { en: "OpenAlex lookup failed: ", de: "OpenAlex-Abfrage fehlgeschlagen: " },
+  oa_gold: { en: "gold", de: "Gold" },
+  oa_hybrid: { en: "hybrid", de: "Hybrid" },
+  oa_green: { en: "green", de: "Grün" },
+  oa_bronze: { en: "bronze", de: "Bronze" },
+  oa_closed: { en: "closed", de: "Geschlossen" },
+  oa_unknown: { en: "unknown", de: "Unbekannt" },
+  alert_invalid_orcid: {
+    en: "Please enter a valid ORCID iD, e.g. 0000-0002-1825-0097",
+    de: "Bitte geben Sie eine gültige ORCID-iD ein, z. B. 0000-0002-1825-0097",
+  },
+  alert_orcid_none_found: { en: "No public works found for this ORCID iD.", de: "Keine öffentlichen Werke für diese ORCID-iD gefunden." },
+  alert_orcid_failed_prefix: { en: "Could not fetch ORCID works: ", de: "ORCID-Werke konnten nicht abgerufen werden: " },
+  alert_orcid_failed_hint: {
+    en: "\n\nIf this persists, the ORCID API may be unreachable from the browser (CORS/network) — try again later or use the paste/upload option instead.",
+    de: "\n\nWenn dies weiterhin auftritt, ist die ORCID-API vom Browser aus evtl. nicht erreichbar (CORS/Netzwerk) — versuchen Sie es später erneut oder nutzen Sie stattdessen Einfügen/Hochladen.",
+  },
+  alert_parse_file_failed_prefix: { en: "Could not parse file: ", de: "Datei konnte nicht verarbeitet werden: " },
+  alert_no_refs: { en: "No references to process.", de: "Keine Referenzen zu verarbeiten." },
+  footnote: {
+    en: 'All processing happens in your browser. Data comes from the public <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (incl. <a href="https://openapc.net" target="_blank" rel="noopener">OpenAPC</a>), <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a>, and <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a> APIs — nothing is stored on a server. See the <a href="README.md">README</a> for methodology.',
+    de: 'Die gesamte Verarbeitung erfolgt in Ihrem Browser. Die Daten stammen von den öffentlichen APIs <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (inkl. <a href="https://openapc.net" target="_blank" rel="noopener">OpenAPC</a>), <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a> und <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a> — nichts wird auf einem Server gespeichert. Methodik siehe <a href="README.md">README</a>.',
+  },
+  glossary_apc_term: { en: "APC (Article Processing Charge)", de: "APC (Article Processing Charge)" },
+  glossary_apc_def: {
+    en: "The fee some journals charge to make an article freely readable (open access) immediately on publication.",
+    de: "Die Gebühr, die manche Zeitschriften verlangen, um einen Artikel sofort bei Veröffentlichung frei zugänglich (Open Access) zu machen.",
+  },
+  glossary_gold_term: { en: "Gold OA", de: "Gold-OA" },
+  glossary_gold_def: {
+    en: "Published in a fully open-access journal — usually funded by an APC.",
+    de: "Veröffentlicht in einer reinen Open-Access-Zeitschrift — meist durch eine APC finanziert.",
+  },
+  glossary_hybrid_term: { en: "Hybrid OA", de: "Hybrid-OA" },
+  glossary_hybrid_def: {
+    en: "Published in a subscription journal, but this specific article was made open access for a fee.",
+    de: "Veröffentlicht in einer Abonnement-Zeitschrift, aber dieser einzelne Artikel wurde gegen Gebühr frei zugänglich gemacht.",
+  },
+  glossary_green_term: { en: "Green OA", de: "Grün-OA" },
+  glossary_green_def: {
+    en: "The article may sit behind a paywall, but a free copy (e.g. a preprint or accepted manuscript) is legally available elsewhere.",
+    de: "Der Artikel kann kostenpflichtig sein, aber eine freie Kopie (z. B. Preprint oder akzeptiertes Manuskript) ist legal anderswo verfügbar.",
+  },
+  glossary_bronze_term: { en: "Bronze OA", de: "Bronze-OA" },
+  glossary_bronze_def: {
+    en: "Free to read on the publisher's site, but without a clear open license and usually without a formal APC.",
+    de: "Auf der Verlagsseite frei lesbar, aber ohne klare offene Lizenz und meist ohne formale APC.",
+  },
+  glossary_closed_term: { en: "Closed", de: "Geschlossen" },
+  glossary_closed_def: {
+    en: "No free legal copy found; typically requires a subscription or per-article payment to read.",
+    de: "Keine freie legale Kopie gefunden; meist nur über Abonnement oder Einzelzahlung lesbar.",
+  },
+  glossary_mean_citedness_term: { en: "Journal mean citedness (2-year)", de: "Ø Zitierhäufigkeit der Zeitschrift (2 Jahre)" },
+  glossary_mean_citedness_def: {
+    en: "The journal's average number of citations per article over 2 years — similar in spirit to a journal impact factor. Used here as a rough benchmark for how many citations an average paper in that journal gets.",
+    de: "Die durchschnittliche Zahl an Zitationen pro Artikel einer Zeitschrift über 2 Jahre — ähnlich einem Journal Impact Factor. Dient hier als grober Richtwert, wie viele Zitationen ein durchschnittlicher Artikel dieser Zeitschrift erhält.",
+  },
+  glossary_altmetric_term: { en: "Altmetric Attention Score", de: "Altmetric Attention Score" },
+  glossary_altmetric_def: {
+    en: 'A weighted count of online attention (news, blogs, social media, policy documents, etc.) an article received. Higher isn\'t automatically "better" — it reflects visibility, not quality.',
+    de: 'Eine gewichtete Kennzahl der Online-Aufmerksamkeit (Nachrichten, Blogs, soziale Medien, politische Dokumente usw.), die ein Artikel erhalten hat. Höher ist nicht automatisch "besser" — die Kennzahl spiegelt Sichtbarkeit wider, nicht Qualität.',
+  },
+  glossary_cost_per_citation_term: { en: "Cost per citation", de: "Kosten pro Zitation" },
+  glossary_cost_per_citation_def: {
+    en: "Total APC spending divided by total citations received — a rough efficiency indicator (lower can mean more citation impact per unit of currency spent).",
+    de: "Gesamte APC-Ausgaben geteilt durch die Gesamtzahl der Zitationen — ein grober Effizienz-Indikator (niedriger kann mehr Zitationswirkung pro ausgegebener Währungseinheit bedeuten).",
+  },
+  glossary_first_author_term: { en: "First-authorship filter", de: "Erstautorenschafts-Filter" },
+  glossary_first_author_def: {
+    en: "Restricts the cost totals to papers where you (matched via ORCID) are listed as the first author — useful if you only want to count costs you were most responsible for.",
+    de: "Beschränkt die Kostensummen auf Artikel, bei denen Sie (abgeglichen über ORCID) als Erstautor:in gelistet sind — nützlich, wenn nur Kosten gezählt werden sollen, für die Sie hauptverantwortlich waren.",
+  },
+};
+
+const GLOSSARY_TERMS = ["apc", "gold", "hybrid", "green", "bronze", "closed", "mean_citedness", "altmetric", "cost_per_citation", "first_author"];
+
+function t(key, vars) {
+  const entry = TRANSLATIONS[key];
+  if (!entry) return key;
+  let str = entry[currentLang] || entry.en || "";
+  if (vars) {
+    for (const k of Object.keys(vars)) str = str.split("{" + k + "}").join(vars[k]);
+  }
+  return str;
+}
+
+function applyTranslations() {
+  document.getElementById("html-root").lang = currentLang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  const orcidInput = document.getElementById("orcid-input");
+  if (orcidInput) orcidInput.placeholder = "0000-0002-1825-0097" + (currentLang === "de" ? " oder orcid.org/0000-0002-1825-0097" : " or orcid.org/0000-0002-1825-0097");
+  updateCostHeader();
+}
+
+function updateCostHeader() {
+  const th = document.getElementById("th-cost");
+  if (th) th.textContent = `${t("th_cost")} (${currentCurrency})`;
+}
+
+function renderGlossary() {
+  const dl = document.getElementById("glossary-body");
+  dl.innerHTML = GLOSSARY_TERMS.map((id) => `<dt>${escapeHtml(t(`glossary_${id}_term`))}</dt><dd>${escapeHtml(t(`glossary_${id}_def`))}</dd>`).join("");
+}
+
+document.querySelectorAll("#lang-toggle .lang-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentLang = btn.dataset.lang;
+    document.querySelectorAll("#lang-toggle .lang-btn").forEach((b) => b.classList.toggle("active", b === btn));
+    applyTranslations();
+    renderGlossary();
+    if (currentResults.length) {
+      renderTable();
+      updateSummary();
+    }
+    updateReviewHints();
+  });
+});
+
+document.getElementById("glossary-toggle").addEventListener("click", () => {
+  const btn = document.getElementById("glossary-toggle");
+  const body = document.getElementById("glossary-body");
+  const expanded = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", String(!expanded));
+  body.classList.toggle("hidden", expanded);
+});
+
+// ================================================================
+// currency
+// ================================================================
+async function loadExchangeRates() {
+  try {
+    const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=EUR,GBP");
+    if (res.ok) {
+      const data = await res.json();
+      if (data.rates && data.rates.EUR) exchangeRates.EUR = data.rates.EUR;
+      if (data.rates && data.rates.GBP) exchangeRates.GBP = data.rates.GBP;
+    }
+  } catch (e) {
+    // keep fallback approximate rates
+  }
+}
+
+function convertCost(usd) {
+  if (usd == null) return null;
+  if (currentCurrency === "USD") return usd;
+  return usd * (exchangeRates[currentCurrency] || 1);
+}
+
+function formatCurrency(usd) {
+  if (usd == null) return null;
+  return CURRENCY_SYMBOLS[currentCurrency] + convertCost(usd).toFixed(2);
+}
+
+document.getElementById("currency-select").addEventListener("change", (e) => {
+  currentCurrency = e.target.value;
+  updateCostHeader();
+  if (currentResults.length) {
+    renderTable();
+    updateSummary();
+  }
+});
+
+// ================================================================
+// first-author filter
+// ================================================================
+function normalizeOrcidInput(raw) {
+  if (!raw) return "";
+  let s = raw.trim();
+  s = s.replace(/^https?:\/\//i, "");
+  s = s.replace(/^www\./i, "");
+  s = s.replace(/^orcid\.org\//i, "");
+  s = s.replace(/\/+$/, "");
+  return s.toUpperCase();
+}
+
+function isValidOrcid(id) {
+  return /^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(id);
+}
+
+document.getElementById("user-orcid-input").addEventListener("input", (e) => {
+  userOrcidNorm = normalizeOrcidInput(e.target.value);
+  if (currentResults.length) {
+    renderTable();
+    updateSummary();
+  }
+});
+
+document.getElementById("first-author-toggle").addEventListener("change", (e) => {
+  firstAuthorOnly = e.target.checked;
+  if (currentResults.length) {
+    renderTable();
+    updateSummary();
+  }
+});
+
+function authorPositionFor(r) {
+  if (!r.authorships || !userOrcidNorm) return null;
+  const match = r.authorships.find((a) => a.author && a.author.orcid && normalizeOrcidInput(a.author.orcid) === userOrcidNorm);
+  return match ? match.author_position : null;
+}
+
+function filterActive() {
+  return firstAuthorOnly && !!userOrcidNorm;
+}
+
+function isIncluded(r) {
+  if (!filterActive()) return true;
+  return authorPositionFor(r) === "first";
+}
 
 // ---------- utilities ----------
 function sleep(ms) {
@@ -63,6 +399,12 @@ function downloadFile(content, filename, mime) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+function escapeHtml(s) {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
 }
 
 // ---------- reference splitting (paste / txt / pdf / docx) ----------
@@ -246,53 +588,6 @@ async function getOpenAlexWork(doi, email) {
   return res.json();
 }
 
-function estimateCost(work) {
-  if (!work) {
-    return { cost: null, source: null, oaStatus: null, note: "No OpenAlex record found for this DOI", journal: null, field: null };
-  }
-  const oaStatus = work.open_access ? work.open_access.oa_status : null;
-  const journal =
-    (work.primary_location && work.primary_location.source && work.primary_location.source.display_name) || null;
-  const field = (work.primary_topic && work.primary_topic.field && work.primary_topic.field.display_name) || null;
-  const apcPaid = work.apc_paid;
-  const apcList = work.apc_list;
-
-  if (apcPaid && apcPaid.value_usd != null) {
-    return {
-      cost: apcPaid.value_usd,
-      source: "OpenAlex apc_paid (actual payment record, via OpenAPC)",
-      oaStatus,
-      note: "",
-      journal,
-      field,
-    };
-  }
-  if (apcList && apcList.value_usd != null) {
-    return {
-      cost: apcList.value_usd,
-      source: `OpenAlex apc_list (journal list price${work.publication_year ? " in " + work.publication_year : ""})`,
-      oaStatus,
-      note: "List price — actual amount paid may differ (waivers, discounts, institutional agreements)",
-      journal,
-      field,
-    };
-  }
-  if (oaStatus === "gold" || oaStatus === "hybrid") {
-    return { cost: null, source: null, oaStatus, note: "Open access but no APC price data available", journal, field };
-  }
-  if (oaStatus === "green" || oaStatus === "closed" || oaStatus === "bronze") {
-    return {
-      cost: 0,
-      source: "Inferred: non-gold/hybrid OA route",
-      oaStatus,
-      note: "Typically no APC for this route (subscription/self-archived/bronze) — not independently verified",
-      journal,
-      field,
-    };
-  }
-  return { cost: null, source: null, oaStatus, note: "OA status unknown, no APC data", journal, field };
-}
-
 const sourceStatsCache = new Map();
 async function getSourceMeanCitedness(sourceId, email) {
   if (!sourceId) return null;
@@ -315,6 +610,49 @@ async function getSourceMeanCitedness(sourceId, email) {
   }
   sourceStatsCache.set(sourceId, value);
   return value;
+}
+
+function estimateCost(work) {
+  if (!work) {
+    return { cost: null, sourceKey: null, sourceParams: null, oaStatus: null, noteKey: "note_no_openalex", journal: null, field: null };
+  }
+  const oaStatus = work.open_access ? work.open_access.oa_status : null;
+  const journal =
+    (work.primary_location && work.primary_location.source && work.primary_location.source.display_name) || null;
+  const field = (work.primary_topic && work.primary_topic.field && work.primary_topic.field.display_name) || null;
+  const apcPaid = work.apc_paid;
+  const apcList = work.apc_list;
+
+  if (apcPaid && apcPaid.value_usd != null) {
+    return { cost: apcPaid.value_usd, sourceKey: "src_apc_paid", sourceParams: null, oaStatus, noteKey: null, journal, field };
+  }
+  if (apcList && apcList.value_usd != null) {
+    return {
+      cost: apcList.value_usd,
+      sourceKey: "src_apc_list",
+      sourceParams: { year: work.publication_year || "" },
+      oaStatus,
+      noteKey: "note_list_price_caveat",
+      journal,
+      field,
+    };
+  }
+  if (oaStatus === "gold" || oaStatus === "hybrid") {
+    return { cost: null, sourceKey: null, sourceParams: null, oaStatus, noteKey: "note_oa_no_apc", journal, field };
+  }
+  if (oaStatus === "green" || oaStatus === "closed" || oaStatus === "bronze") {
+    return { cost: 0, sourceKey: "src_inferred", sourceParams: null, oaStatus, noteKey: "note_inferred_caveat", journal, field };
+  }
+  return { cost: null, sourceKey: null, sourceParams: null, oaStatus, noteKey: "note_oa_unknown", journal, field };
+}
+
+function formatSource(sourceKey, sourceParams) {
+  if (!sourceKey) return "";
+  if (sourceKey === "src_apc_list") {
+    const yearStr = sourceParams && sourceParams.year ? t("src_apc_list_year", { year: sourceParams.year }) : "";
+    return t("src_apc_list", { year: yearStr });
+  }
+  return t(sourceKey);
 }
 
 // ---------- ORCID ----------
@@ -362,7 +700,11 @@ function setMode(mode) {
 
 // ---------- hero: advanced options ----------
 document.getElementById("advanced-toggle").addEventListener("click", () => {
-  document.getElementById("advanced-panel").classList.toggle("hidden");
+  const btn = document.getElementById("advanced-toggle");
+  const panel = document.getElementById("advanced-panel");
+  const expanded = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", String(!expanded));
+  panel.classList.toggle("hidden");
 });
 
 // ---------- hero: upload card ----------
@@ -427,9 +769,18 @@ async function handleParseFile(file) {
     }
     showReviewTextarea(splitReferences(text));
   } catch (e) {
-    alert("Could not parse file: " + e.message);
+    alert(t("alert_parse_file_failed_prefix") + e.message);
   } finally {
     btn.disabled = false;
+  }
+}
+
+let lastReviewCount = { mode: null, n: 0 };
+function updateReviewHints() {
+  if (lastReviewCount.mode === "text") {
+    document.getElementById("review-hint-text").textContent = t("review_hint_text", { n: lastReviewCount.n });
+  } else if (lastReviewCount.mode === "list") {
+    document.getElementById("review-hint-list").textContent = t("review_hint_list", { n: lastReviewCount.n });
   }
 }
 
@@ -437,7 +788,8 @@ function showReviewTextarea(refs) {
   document.getElementById("review-section").classList.remove("hidden");
   document.getElementById("review-text-mode").classList.remove("hidden");
   document.getElementById("review-list-mode").classList.add("hidden");
-  document.getElementById("review-count-text").textContent = refs.length;
+  lastReviewCount = { mode: "text", n: refs.length };
+  updateReviewHints();
   document.getElementById("review-textarea").value = refs.join("\n");
   document.getElementById("review-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -446,7 +798,8 @@ function showReviewList() {
   document.getElementById("review-section").classList.remove("hidden");
   document.getElementById("review-text-mode").classList.add("hidden");
   document.getElementById("review-list-mode").classList.remove("hidden");
-  document.getElementById("review-count-list").textContent = referenceItems.length;
+  lastReviewCount = { mode: "list", n: referenceItems.length };
+  updateReviewHints();
   const container = document.getElementById("review-list");
   container.innerHTML = "";
   referenceItems.forEach((item, idx) => {
@@ -464,12 +817,6 @@ function showReviewList() {
   document.getElementById("review-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function escapeHtml(s) {
-  const div = document.createElement("div");
-  div.textContent = s;
-  return div.innerHTML;
-}
-
 // ---------- ORCID flow ----------
 document.getElementById("fetch-orcid-btn").addEventListener("click", () => {
   handleFetchOrcid(document.getElementById("orcid-input").value.trim());
@@ -477,29 +824,32 @@ document.getElementById("fetch-orcid-btn").addEventListener("click", () => {
 
 async function handleFetchOrcid(orcidRaw) {
   const btn = document.getElementById("fetch-orcid-btn");
-  const orcid = orcidRaw.replace(/^https?:\/\/orcid\.org\//i, "");
-  if (!/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(orcid)) {
-    alert("Please enter a valid ORCID iD, e.g. 0000-0002-1825-0097");
+  const orcid = normalizeOrcidInput(orcidRaw);
+  if (!isValidOrcid(orcid)) {
+    alert(t("alert_invalid_orcid"));
     return;
   }
   btn.disabled = true;
-  btn.textContent = "Fetching…";
+  const originalLabel = btn.textContent;
+  btn.textContent = "…";
   try {
     referenceItems = await getOrcidWorks(orcid);
     if (referenceItems.length === 0) {
-      alert("No public works found for this ORCID iD.");
+      alert(t("alert_orcid_none_found"));
       return;
+    }
+    // auto-fill "your ORCID" for the first-author filter, if empty
+    const userOrcidField = document.getElementById("user-orcid-input");
+    if (!userOrcidField.value.trim()) {
+      userOrcidField.value = orcid;
+      userOrcidNorm = orcid;
     }
     showReviewList();
   } catch (e) {
-    alert(
-      "Could not fetch ORCID works: " +
-        e.message +
-        "\n\nIf this persists, the ORCID API may be unreachable from the browser (CORS/network) — try again later or use the paste/upload option instead."
-    );
+    alert(t("alert_orcid_failed_prefix") + e.message + t("alert_orcid_failed_hint"));
   } finally {
     btn.disabled = false;
-    btn.textContent = "Fetch works";
+    btn.textContent = originalLabel;
   }
 }
 
@@ -519,7 +869,7 @@ document.getElementById("confirm-btn").addEventListener("click", async () => {
   }
 
   if (items.length === 0) {
-    alert("No references to process.");
+    alert(t("alert_no_refs"));
     return;
   }
 
@@ -574,7 +924,7 @@ async function processItem(item, index, email, onUpdate) {
         matchScore = match.score;
       }
     } catch (e) {
-      onUpdate(index, { status: "error", notes: "Crossref lookup failed: " + e.message });
+      onUpdate(index, { status: "error", notes: t("note_crossref_failed_prefix") + e.message });
       return;
     }
     await sleep(120);
@@ -586,9 +936,10 @@ async function processItem(item, index, email, onUpdate) {
       doi: null,
       cost: null,
       oaStatus: null,
-      source: null,
+      sourceKey: null,
+      sourceParams: null,
       journal: null,
-      notes: "No matching DOI found",
+      noteKey: "note_no_doi",
     });
     return;
   }
@@ -598,7 +949,7 @@ async function processItem(item, index, email, onUpdate) {
   try {
     work = await getOpenAlexWork(doi, email);
   } catch (e) {
-    onUpdate(index, { status: "error", doi, notes: "OpenAlex lookup failed: " + e.message });
+    onUpdate(index, { status: "error", doi, notes: t("note_openalex_failed_prefix") + e.message });
     return;
   }
   await sleep(120);
@@ -607,6 +958,7 @@ async function processItem(item, index, email, onUpdate) {
   const citedByCount = work && work.cited_by_count != null ? work.cited_by_count : null;
   const sourceId = work && work.primary_location && work.primary_location.source && work.primary_location.source.id;
   const meanCitedness = sourceId ? await getSourceMeanCitedness(sourceId, email) : null;
+  const authorships = (work && work.authorships) || null;
 
   onUpdate(index, {
     status: "done",
@@ -615,25 +967,33 @@ async function processItem(item, index, email, onUpdate) {
     matchScore,
     oaStatus: estimate.oaStatus,
     cost: estimate.cost,
-    source: estimate.source,
+    sourceKey: estimate.sourceKey,
+    sourceParams: estimate.sourceParams,
     journal: estimate.journal,
     field: estimate.field,
-    notes: estimate.note,
+    noteKey: estimate.noteKey,
     citedByCount,
     meanCitedness,
+    authorships,
   });
 }
 
 // ---------- rendering ----------
 function updateProgress(done, total) {
   const pct = total ? Math.round((done / total) * 100) : 0;
-  document.getElementById("progress-fill").style.width = pct + "%";
-  document.getElementById("progress-label").textContent = `${done} / ${total} processed`;
+  const fill = document.getElementById("progress-fill");
+  fill.style.width = pct + "%";
+  fill.setAttribute("aria-valuenow", String(pct));
+  document.getElementById("progress-label").textContent = t("progress_label", { done, total });
 }
 
 function oaBadgeClass(oaStatus) {
   if (!oaStatus) return "oa-unknown";
   return "oa-" + oaStatus;
+}
+
+function oaLabel(oaStatus) {
+  return t("oa_" + (oaStatus || "unknown"));
 }
 
 let rowElements = [];
@@ -685,29 +1045,34 @@ function initAltmetric(cell, doi) {
 
 function renderTable() {
   ensureRows();
+  const active = filterActive();
   currentResults.forEach((r, i) => {
     const tr = rowElements[i];
-    tr.className = r.status === "error" ? "status-error" : "";
+    const excluded = r.status === "done" && active && !isIncluded(r);
+    tr.className = r.status === "error" ? "status-error" : excluded ? "excluded-row" : "";
 
     const statusLabel =
       r.status === "pending"
-        ? "Waiting…"
+        ? t("status_waiting")
         : r.status === "resolving"
-        ? "Resolving DOI…"
+        ? t("status_resolving")
         : r.status === "fetching-cost"
-        ? "Fetching cost…"
+        ? t("status_fetching")
         : r.status === "error"
-        ? "Error"
+        ? t("status_error")
         : "";
 
-    const costText = r.status === "done" ? (r.cost != null ? "$" + r.cost.toFixed(2) : "—") : statusLabel;
+    const costText = r.status === "done" ? (r.cost != null ? formatCurrency(r.cost) : "—") : statusLabel;
     const doiHtml = r.doi
       ? `<a href="https://doi.org/${encodeURIComponent(r.doi)}" target="_blank" rel="noopener">${escapeHtml(r.doi)}</a>`
       : "—";
     const oaHtml =
-      r.status === "done" && r.oaStatus ? `<span class="badge ${oaBadgeClass(r.oaStatus)}">${escapeHtml(r.oaStatus)}</span>` : r.status === "done" ? "—" : "";
+      r.status === "done" && r.oaStatus ? `<span class="badge ${oaBadgeClass(r.oaStatus)}">${escapeHtml(oaLabel(r.oaStatus))}</span>` : r.status === "done" ? "—" : "";
+
+    let notesText = r.noteKey ? t(r.noteKey) : r.notes || "";
+    if (excluded) notesText = (notesText ? notesText + " — " : "") + t("note_excluded_not_first_author");
     const notesHtml =
-      escapeHtml(r.notes || "") +
+      escapeHtml(notesText) +
       (r.journal || r.field ? `<br><span class="hint-inline">${escapeHtml([r.journal, r.field].filter(Boolean).join(" · "))}</span>` : "");
 
     tr.querySelector(".cell-idx").textContent = i + 1;
@@ -715,7 +1080,7 @@ function renderTable() {
     tr.querySelector(".cell-doi").innerHTML = doiHtml;
     tr.querySelector(".cell-oa").innerHTML = oaHtml;
     tr.querySelector(".cell-cost").textContent = costText;
-    tr.querySelector(".cell-source").textContent = r.source || "";
+    tr.querySelector(".cell-source").textContent = r.sourceKey ? formatSource(r.sourceKey, r.sourceParams) : "";
     tr.querySelector(".cell-citations").textContent = r.status === "done" ? (r.citedByCount != null ? r.citedByCount.toLocaleString("en-US") : "—") : "";
     tr.querySelector(".cell-meancited").textContent = r.status === "done" ? (r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "—") : "";
     tr.querySelector(".cell-notes").innerHTML = notesHtml;
@@ -731,23 +1096,49 @@ function renderTable() {
   });
 }
 
-function updateSummary() {
-  const finished = currentResults.filter((r) => r.status === "done");
-  const determined = finished.filter((r) => r.cost != null);
-  const totalCost = determined.reduce((s, r) => s + r.cost, 0);
-  const avgAll = determined.length ? totalCost / determined.length : 0;
-  const paidOnly = determined.filter((r) => r.cost > 0);
-  const avgPaid = paidOnly.length ? paidOnly.reduce((s, r) => s + r.cost, 0) / paidOnly.length : 0;
-
-  document.getElementById("stat-total-cost").textContent = "$" + totalCost.toFixed(2);
-  document.getElementById("stat-avg-all").textContent = "$" + avgAll.toFixed(2);
-  document.getElementById("stat-avg-paid").textContent = "$" + avgPaid.toFixed(2);
-  document.getElementById("stat-determined").textContent = `${determined.length} / ${currentResults.length}`;
-
-  renderHistogram(determined.map((r) => r.cost));
+function getAltmetricScore(i) {
+  const cell = rowElements[i] && rowElements[i].querySelector(".cell-altmetric");
+  const v = cell && cell.dataset.score;
+  return v ? parseFloat(v) : null;
 }
 
-// ---------- histogram ----------
+function updateSummary() {
+  const active = filterActive();
+  document.getElementById("first-author-note").style.display = firstAuthorOnly ? "block" : "none";
+  document.getElementById("first-author-note").textContent = firstAuthorOnly
+    ? active
+      ? t("first_author_active_note")
+      : t("first_author_missing_orcid")
+    : "";
+
+  const finished = currentResults.filter((r) => r.status === "done" && isIncluded(r));
+  const determined = finished.filter((r) => r.cost != null);
+  const determinedConverted = determined.map((r) => convertCost(r.cost));
+  const totalCost = determinedConverted.reduce((s, c) => s + c, 0);
+  const avgAll = determinedConverted.length ? totalCost / determinedConverted.length : 0;
+  const paidOnly = determinedConverted.filter((c) => c > 0);
+  const avgPaid = paidOnly.length ? paidOnly.reduce((s, c) => s + c, 0) / paidOnly.length : 0;
+
+  const withBoth = determined.filter((r) => r.citedByCount != null && r.citedByCount > 0);
+  const totalCostForCitations = withBoth.reduce((s, r) => s + convertCost(r.cost), 0);
+  const totalCitations = withBoth.reduce((s, r) => s + r.citedByCount, 0);
+  const costPerCitation = totalCitations > 0 ? totalCostForCitations / totalCitations : null;
+
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  document.getElementById("stat-total-cost").textContent = sym + totalCost.toFixed(2);
+  document.getElementById("stat-avg-all").textContent = sym + avgAll.toFixed(2);
+  document.getElementById("stat-avg-paid").textContent = sym + avgPaid.toFixed(2);
+  document.getElementById("stat-determined").textContent = `${determined.length} / ${finished.length}`;
+  document.getElementById("stat-cost-per-citation").textContent = costPerCitation != null ? sym + costPerCitation.toFixed(2) : "–";
+
+  renderHistogram(determinedConverted);
+  renderScatterChart(finished);
+  renderOaChart(finished);
+}
+
+// ================================================================
+// histogram (with mean/median reference lines)
+// ================================================================
 function niceBinWidth(raw) {
   if (!isFinite(raw) || raw <= 0) return 1;
   const exponent = Math.floor(Math.log10(raw));
@@ -761,10 +1152,10 @@ function niceBinWidth(raw) {
 }
 
 function computeHistogram(costs) {
-  if (costs.length === 0) return { labels: [], counts: [] };
+  if (costs.length === 0) return { labels: [], counts: [], binWidth: 1 };
   const max = Math.max(...costs);
   if (max === 0) {
-    return { labels: ["$0"], counts: [costs.length] };
+    return { labels: ["0"], counts: [costs.length], binWidth: 1 };
   }
   const targetBins = Math.min(10, Math.max(5, Math.round(Math.sqrt(costs.length))));
   const width = niceBinWidth(max / targetBins);
@@ -776,22 +1167,80 @@ function computeHistogram(costs) {
     if (idx < 0) idx = 0;
     counts[idx]++;
   }
-  const labels = counts.map((_, i) => `$${Math.round(i * width).toLocaleString()}–${Math.round((i + 1) * width).toLocaleString()}`);
-  return { labels, counts };
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  const labels = counts.map((_, i) => `${sym}${Math.round(i * width).toLocaleString("en-US")}–${sym}${Math.round((i + 1) * width).toLocaleString("en-US")}`);
+  return { labels, counts, binWidth: width };
 }
+
+function computeMeanMedian(values) {
+  if (!values.length) return { mean: null, median: null };
+  const sum = values.reduce((a, b) => a + b, 0);
+  const mean = sum / values.length;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  return { mean, median };
+}
+
+const referenceLinesPlugin = {
+  id: "referenceLines",
+  afterDraw(chart) {
+    const cfg = chart.options.plugins && chart.options.plugins.referenceLines;
+    if (!cfg || !cfg.lines || !cfg.lines.length) return;
+    const { ctx, chartArea, scales } = chart;
+    const xScale = scales.x;
+    const nBins = cfg.nBins || 1;
+    const bandWidth = (chartArea.right - chartArea.left) / nBins;
+    ctx.save();
+    cfg.lines.forEach((line) => {
+      const fractionalIndex = cfg.binWidth ? line.value / cfg.binWidth : 0;
+      const xPixel = chartArea.left + fractionalIndex * bandWidth;
+      if (xPixel < chartArea.left - 1 || xPixel > chartArea.right + 1) return;
+      ctx.beginPath();
+      ctx.moveTo(xPixel, chartArea.top);
+      ctx.lineTo(xPixel, chartArea.bottom);
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = line.color;
+      ctx.font = "600 11px 'Source Sans 3', sans-serif";
+      const nearRight = xPixel > chartArea.right - 70;
+      ctx.textAlign = nearRight ? "right" : "left";
+      ctx.fillText(line.label, xPixel + (nearRight ? -6 : 6), chartArea.top + 12);
+    });
+    ctx.restore();
+  },
+};
+if (window.Chart) Chart.register(referenceLinesPlugin);
 
 let costChart = null;
 function renderHistogram(costs) {
   const canvas = document.getElementById("cost-histogram");
   if (!canvas || typeof Chart === "undefined") return;
-  const { labels, counts } = computeHistogram(costs);
+  const { labels, counts, binWidth } = computeHistogram(costs);
+  const { mean, median } = computeMeanMedian(costs);
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
 
   const caption = document.getElementById("chart-caption");
   if (caption) {
     caption.textContent = costs.length
-      ? `Distribution of APC cost across ${costs.length} priced article${costs.length === 1 ? "" : "s"}. Full values are in the table below.`
-      : "No priced articles yet.";
+      ? t("chart_caption_hist", { n: costs.length, plural: costs.length === 1 ? "" : "s" })
+      : "";
   }
+
+  const referenceLines =
+    costs.length && Math.max(...costs) > 0
+      ? {
+          binWidth,
+          nBins: counts.length,
+          lines: [
+            mean != null ? { value: mean, color: "#0f6f96", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${mean.toFixed(0)}` } : null,
+            median != null ? { value: median, color: "#d1652c", label: `${currentLang === "de" ? "Median" : "Median"}: ${sym}${median.toFixed(0)}` } : null,
+          ].filter(Boolean),
+        }
+      : { lines: [] };
 
   if (!costChart) {
     costChart = new Chart(canvas.getContext("2d"), {
@@ -802,7 +1251,7 @@ function renderHistogram(costs) {
           {
             label: "Articles",
             data: counts,
-            backgroundColor: "#2f6f4f",
+            backgroundColor: "#1583ad",
             borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
             borderSkipped: "bottom",
             maxBarThickness: 32,
@@ -815,8 +1264,9 @@ function renderHistogram(costs) {
         animation: { duration: 200 },
         plugins: {
           legend: { display: false },
+          referenceLines,
           tooltip: {
-            backgroundColor: "#234f38",
+            backgroundColor: "#0f6f96",
             titleColor: "#fff",
             bodyColor: "#fff",
             padding: 10,
@@ -830,14 +1280,14 @@ function renderHistogram(costs) {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: "#5c6560", font: { size: 11 } },
-            title: { display: true, text: "APC cost (USD)", color: "#5c6560", font: { size: 11 } },
+            ticks: { color: "#55606b", font: { size: 11 } },
+            title: { display: true, text: `APC cost (${currentCurrency})`, color: "#55606b", font: { size: 11 } },
           },
           y: {
             beginAtZero: true,
-            ticks: { precision: 0, color: "#5c6560" },
-            grid: { color: "#e4e7e5", drawTicks: false },
-            title: { display: true, text: "Number of articles", color: "#5c6560", font: { size: 11 } },
+            ticks: { precision: 0, color: "#55606b" },
+            grid: { color: "#e6ebee", drawTicks: false },
+            title: { display: true, text: "Number of articles", color: "#55606b", font: { size: 11 } },
           },
         },
       },
@@ -845,35 +1295,205 @@ function renderHistogram(costs) {
   } else {
     costChart.data.labels = labels;
     costChart.data.datasets[0].data = counts;
+    costChart.options.plugins.referenceLines = referenceLines;
+    costChart.options.scales.x.title.text = `APC cost (${currentCurrency})`;
     costChart.update();
   }
 }
 
-function getAltmetricScore(i) {
-  const cell = rowElements[i] && rowElements[i].querySelector(".cell-altmetric");
-  const v = cell && cell.dataset.score;
-  return v ? parseFloat(v) : null;
+// ================================================================
+// scatter: cost vs. actual/expected citations
+// ================================================================
+let scatterChart = null;
+function renderScatterChart(finished) {
+  const canvas = document.getElementById("cost-citations-scatter");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const actualPoints = [];
+  const expectedPoints = [];
+  finished.forEach((r) => {
+    if (r.cost == null) return;
+    const x = convertCost(r.cost);
+    if (r.citedByCount != null) actualPoints.push({ x, y: r.citedByCount });
+    if (r.meanCitedness != null) expectedPoints.push({ x, y: r.meanCitedness });
+  });
+
+  if (!scatterChart) {
+    scatterChart = new Chart(canvas.getContext("2d"), {
+      type: "scatter",
+      data: {
+        datasets: [
+          {
+            label: currentLang === "de" ? "Tatsächliche Zitationen" : "Actual citations",
+            data: actualPoints,
+            backgroundColor: "#1583ad",
+            borderColor: "#1583ad",
+          },
+          {
+            label: currentLang === "de" ? "Erwartete Zitationen (Ø Zeitschrift)" : "Expected citations (journal mean)",
+            data: expectedPoints,
+            backgroundColor: "#d1652c",
+            borderColor: "#d1652c",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          tooltip: {
+            backgroundColor: "#0f6f96",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 10,
+            callbacks: {
+              label: (item) => `${item.dataset.label}: ${item.parsed.y.toFixed(1)} @ ${CURRENCY_SYMBOLS[currentCurrency]}${item.parsed.x.toFixed(0)}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            title: { display: true, text: `APC cost (${currentCurrency})`, color: "#55606b", font: { size: 11 } },
+            ticks: { color: "#55606b", font: { size: 11 } },
+            grid: { color: "#e6ebee" },
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: currentLang === "de" ? "Zitationen" : "Citations", color: "#55606b", font: { size: 11 } },
+            ticks: { color: "#55606b", font: { size: 11 } },
+            grid: { color: "#e6ebee" },
+          },
+        },
+      },
+    });
+  } else {
+    scatterChart.data.datasets[0].data = actualPoints;
+    scatterChart.data.datasets[1].data = expectedPoints;
+    scatterChart.data.datasets[0].label = currentLang === "de" ? "Tatsächliche Zitationen" : "Actual citations";
+    scatterChart.data.datasets[1].label = currentLang === "de" ? "Erwartete Zitationen (Ø Zeitschrift)" : "Expected citations (journal mean)";
+    scatterChart.options.scales.x.title.text = `APC cost (${currentCurrency})`;
+    scatterChart.options.scales.y.title.text = currentLang === "de" ? "Zitationen" : "Citations";
+    scatterChart.update();
+  }
+}
+
+// ================================================================
+// OA type stacked bar
+// ================================================================
+const OA_TYPES = [
+  { key: "gold", color: "#c99a2e" },
+  { key: "hybrid", color: "#d1652c" },
+  { key: "green", color: "#2f8f5b" },
+  { key: "bronze", color: "#96551f" },
+  { key: "closed", color: "#1583ad" },
+  { key: "unknown", color: "#3fa0c9" },
+];
+
+const percentLabelPlugin = {
+  id: "percentLabels",
+  afterDatasetsDraw(chart) {
+    if (chart.canvas.id !== "oa-stacked-bar") return;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = "600 11px 'Source Sans 3', sans-serif";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    chart.data.datasets.forEach((ds, dsIndex) => {
+      const meta = chart.getDatasetMeta(dsIndex);
+      meta.data.forEach((bar, i) => {
+        const value = ds.data[i];
+        const total = chart.data.datasets.reduce((s, d) => s + d.data[i], 0);
+        if (!value || !total) return;
+        const pct = Math.round((value / total) * 100);
+        const width = bar.width;
+        if (width < 26 || pct < 5) return;
+        ctx.fillText(pct + "%", bar.x, bar.y);
+      });
+    });
+    ctx.restore();
+  },
+};
+if (window.Chart) Chart.register(percentLabelPlugin);
+
+let oaChart = null;
+function renderOaChart(finished) {
+  const canvas = document.getElementById("oa-stacked-bar");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const counts = {};
+  OA_TYPES.forEach((t) => (counts[t.key] = 0));
+  finished.forEach((r) => {
+    const key = r.oaStatus || "unknown";
+    if (counts[key] == null) counts[key] = 0;
+    counts[key]++;
+  });
+
+  const datasets = OA_TYPES.map((oa) => ({
+    label: oaLabel(oa.key),
+    data: [counts[oa.key] || 0],
+    backgroundColor: oa.color,
+  }));
+
+  if (!oaChart) {
+    oaChart = new Chart(canvas.getContext("2d"), {
+      type: "bar",
+      data: { labels: [""], datasets },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { stacked: true, display: false },
+          y: { stacked: true, display: false },
+        },
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          tooltip: {
+            backgroundColor: "#0f6f96",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 10,
+            callbacks: {
+              label: (item) => {
+                const total = item.chart.data.datasets.reduce((s, d) => s + d.data[0], 0);
+                const pct = total ? Math.round((item.raw / total) * 100) : 0;
+                return `${item.dataset.label}: ${item.raw} (${pct}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+  } else {
+    oaChart.data.datasets.forEach((ds, i) => {
+      ds.data = datasets[i].data;
+      ds.label = datasets[i].label;
+    });
+    oaChart.update();
+  }
 }
 
 // ---------- CSV export ----------
 document.getElementById("export-csv-btn").addEventListener("click", () => {
   const header = [
-    "#", "Reference", "DOI", "OA type", "APC cost (USD)", "Price source",
-    "Citations", "Journal mean citedness (2yr)", "Altmetric score", "Journal", "Field", "Notes",
+    "#", t("th_ref"), "DOI", t("th_oa"), `${t("th_cost")} (${currentCurrency})`, t("th_source"),
+    t("th_citations"), t("th_meancited"), "Altmetric", "Journal", "Field", t("th_notes"),
   ];
   const rows = currentResults.map((r, i) => [
     i + 1,
     r.matchedTitle || r.raw,
     r.doi || "",
-    r.oaStatus || "",
-    r.cost != null ? r.cost.toFixed(2) : "",
-    r.source || "",
+    r.oaStatus ? oaLabel(r.oaStatus) : "",
+    r.cost != null ? convertCost(r.cost).toFixed(2) : "",
+    r.sourceKey ? formatSource(r.sourceKey, r.sourceParams) : "",
     r.citedByCount != null ? r.citedByCount : "",
     r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "",
     getAltmetricScore(i) ?? "",
     r.journal || "",
     r.field || "",
-    r.notes || "",
+    r.noteKey ? t(r.noteKey) : "",
   ]);
   const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
   downloadFile(csv, "publication-costs.csv", "text/csv;charset=utf-8");
@@ -881,12 +1501,18 @@ document.getElementById("export-csv-btn").addEventListener("click", () => {
 
 // ---------- HTML export ----------
 document.getElementById("export-html-btn").addEventListener("click", () => {
-  const determined = currentResults.filter((r) => r.status === "done" && r.cost != null);
-  const totalCost = determined.reduce((s, r) => s + r.cost, 0);
-  const avgAll = determined.length ? totalCost / determined.length : 0;
-  const paidOnly = determined.filter((r) => r.cost > 0);
-  const avgPaid = paidOnly.length ? paidOnly.reduce((s, r) => s + r.cost, 0) / paidOnly.length : 0;
-  const chartImg = costChart ? costChart.toBase64Image() : null;
+  const finished = currentResults.filter((r) => r.status === "done" && isIncluded(r));
+  const determined = finished.filter((r) => r.cost != null);
+  const determinedConverted = determined.map((r) => convertCost(r.cost));
+  const totalCost = determinedConverted.reduce((s, c) => s + c, 0);
+  const avgAll = determinedConverted.length ? totalCost / determinedConverted.length : 0;
+  const paidOnly = determinedConverted.filter((c) => c > 0);
+  const avgPaid = paidOnly.length ? paidOnly.reduce((s, c) => s + c, 0) / paidOnly.length : 0;
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+
+  const histImg = costChart ? costChart.toBase64Image() : null;
+  const scatterImg = scatterChart ? scatterChart.toBase64Image() : null;
+  const oaImg = oaChart ? oaChart.toBase64Image() : null;
 
   const rowsHtml = currentResults
     .map((r, i) => {
@@ -895,32 +1521,33 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
         <td>${i + 1}</td>
         <td>${escapeHtml(r.matchedTitle || r.raw)}</td>
         <td>${r.doi ? `<a href="https://doi.org/${escapeHtml(r.doi)}">${escapeHtml(r.doi)}</a>` : "—"}</td>
-        <td>${escapeHtml(r.oaStatus || "—")}</td>
-        <td>${r.cost != null ? "$" + r.cost.toFixed(2) : "—"}</td>
-        <td>${escapeHtml(r.source || "")}</td>
+        <td>${r.oaStatus ? escapeHtml(oaLabel(r.oaStatus)) : "—"}</td>
+        <td>${r.cost != null ? sym + convertCost(r.cost).toFixed(2) : "—"}</td>
+        <td>${r.sourceKey ? escapeHtml(formatSource(r.sourceKey, r.sourceParams)) : ""}</td>
         <td>${r.citedByCount != null ? r.citedByCount.toLocaleString("en-US") : "—"}</td>
         <td>${r.meanCitedness != null ? r.meanCitedness.toFixed(2) : "—"}</td>
         <td>${altScore != null ? altScore : "—"}</td>
         <td>${escapeHtml([r.journal, r.field].filter(Boolean).join(" · "))}</td>
-        <td>${escapeHtml(r.notes || "")}</td>
+        <td>${r.noteKey ? escapeHtml(t(r.noteKey)) : ""}</td>
       </tr>`;
     })
     .join("");
 
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="${currentLang}">
 <head>
 <meta charset="UTF-8">
 <title>Publication Cost Report</title>
 <style>
   body { font-family: "Source Sans 3", Arial, sans-serif; color: #262b30; background: #f4f7f9; margin: 0; padding: 2rem; }
   h1 { font-family: Georgia, serif; color: #1583ad; margin-bottom: 0.2rem; }
+  h2 { font-family: Georgia, serif; color: #3d4857; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
   .generated { color: #8b95a0; font-size: 0.85rem; margin-bottom: 1.2rem; }
   .stats { display: flex; gap: 14px; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
   .stat { background: #eaf4f9; border-radius: 8px; padding: 12px 18px; text-align: center; min-width: 150px; }
   .stat b { display: block; font-size: 1.3rem; color: #0f6f96; }
   .stat span { font-size: 0.78rem; color: #55606b; }
-  img.chart { max-width: 100%; margin: 0 0 1.5rem; background: #fff; border-radius: 8px; padding: 10px; }
+  img.chart { max-width: 100%; margin: 0 0 1rem; background: #fff; border-radius: 8px; padding: 10px; }
   table { border-collapse: collapse; width: 100%; background: #fff; font-size: 12.5px; box-shadow: 0 1px 3px rgba(15,40,55,0.07); }
   th, td { padding: 7px 9px; border-bottom: 1px solid #e6ebee; text-align: left; vertical-align: top; }
   th { background: #f4f7f9; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.02em; color: #3d4857; }
@@ -931,18 +1558,21 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
   <h1>Publication Cost Report</h1>
   <p class="generated">Generated by the <a href="https://github.com/LukasRoeseler/pcc">Publication Cost Calculator</a> on ${new Date().toLocaleString()}.</p>
   <div class="stats">
-    <div class="stat"><b>$${totalCost.toFixed(2)}</b><span>Total cost (USD)</span></div>
-    <div class="stat"><b>$${avgAll.toFixed(2)}</b><span>Average per article (all determined)</span></div>
-    <div class="stat"><b>$${avgPaid.toFixed(2)}</b><span>Average per article with an APC &gt; 0</span></div>
-    <div class="stat"><b>${determined.length} / ${currentResults.length}</b><span>Articles with a determined cost</span></div>
+    <div class="stat"><b>${sym}${totalCost.toFixed(2)}</b><span>${t("stat_total")}</span></div>
+    <div class="stat"><b>${sym}${avgAll.toFixed(2)}</b><span>${t("stat_avg_all")}</span></div>
+    <div class="stat"><b>${sym}${avgPaid.toFixed(2)}</b><span>${t("stat_avg_paid")}</span></div>
+    <div class="stat"><b>${determined.length} / ${finished.length}</b><span>${t("stat_determined")}</span></div>
   </div>
-  ${chartImg ? `<img class="chart" src="${chartImg}" alt="Histogram of APC cost across priced articles">` : ""}
+  ${histImg ? `<h2>${t("chart_title_hist")}</h2><img class="chart" src="${histImg}" alt="${t("chart_title_hist")}">` : ""}
+  ${scatterImg ? `<h2>${t("chart_title_scatter")}</h2><img class="chart" src="${scatterImg}" alt="${t("chart_title_scatter")}">` : ""}
+  ${oaImg ? `<h2>${t("chart_title_oa")}</h2><img class="chart" src="${oaImg}" alt="${t("chart_title_oa")}">` : ""}
+  <h2>${t("results_title")}</h2>
   <table>
     <thead>
       <tr>
-        <th>#</th><th>Reference / matched title</th><th>DOI</th><th>OA type</th><th>APC cost (USD)</th>
-        <th>Price source</th><th>Citations</th><th>Journal mean citedness (2yr)</th><th>Altmetric</th>
-        <th>Journal / field</th><th>Notes</th>
+        <th>#</th><th>${t("th_ref")}</th><th>DOI</th><th>${t("th_oa")}</th><th>${t("th_cost")} (${currentCurrency})</th>
+        <th>${t("th_source")}</th><th>${t("th_citations")}</th><th>${t("th_meancited")}</th><th>${t("th_altmetric")}</th>
+        <th>Journal / field</th><th>${t("th_notes")}</th>
       </tr>
     </thead>
     <tbody>${rowsHtml}</tbody>
@@ -952,3 +1582,8 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
 
   downloadFile(html, "publication-cost-report.html", "text/html;charset=utf-8");
 });
+
+// ---------- init ----------
+applyTranslations();
+renderGlossary();
+loadExchangeRates();

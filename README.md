@@ -1,12 +1,28 @@
 # Publication Cost Calculator
 
 A static, client-side web tool that estimates the article processing charges
-(APCs) behind a reference list: total cost, average cost, a cost-distribution
-histogram, and a per-article breakdown with OA type, price source, citation
+(APCs) behind a reference list: total cost, average cost, cost per citation, a
+cost-distribution histogram, a cost-vs-citations scatter plot, an open-access
+type breakdown, and a per-article table with OA type, price source, citation
 count, journal mean citedness, and Altmetric attention.
 
 Everything runs in the browser. No backend, no build step, no data storage —
-just static files you can host on GitHub Pages.
+just static files you can host on GitHub Pages. Available in English and
+German (toggle top-right), with a plain-language glossary for anyone unfamiliar
+with APCs, OA types, or these metrics.
+
+## Extra options
+
+- **Currency** — choose €/$/£ (top-right); all figures convert live from the
+  underlying USD values (via [frankfurter.app](https://www.frankfurter.app/),
+  ECB reference rates).
+- **First-authorship filter** (in Advanced options) — enter your ORCID iD and
+  tick "count first-authorship papers only towards costs" to restrict all
+  totals, charts, and the cost-per-citation KPI to papers where OpenAlex's
+  author-position data confirms you as first author. Other rows stay visible
+  in the table, dimmed and struck through, rather than disappearing.
+- ORCID iDs can be entered in any common form: `0000-0002-1825-0097`,
+  `orcid.org/0000-0002-1825-0097`, or a full `https://orcid.org/...` URL.
 
 ## Hosting on GitHub Pages
 
