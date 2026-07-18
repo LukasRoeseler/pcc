@@ -2,8 +2,10 @@ name: Update Munster living report
 
 on:
   schedule:
-    # Every Monday at 03:00 UTC.
-    - cron: "0 3 * * 1"
+    # Daily at 03:00 UTC. OpenAlex's free usage budget resets daily, so a daily
+    # run (rather than weekly) lets the initial backlog crawl make steady
+    # progress instead of losing most of the week idle.
+    - cron: "0 3 * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -20,9 +22,22 @@ jobs:
           node-version: 20
 
       - name: Run OpenAlex crawl (resumable, budget-aware)
+        id: crawl
+        # Continue past a crawl failure so the commit step below still runs and
+        # saves whatever was fetched before the failure -- see crawl.js, which
+        # checkpoints progress after every page and always rebuilds its CSV/JSON
+        # outputs from disk before exiting, success or not.
+        continue-on-error: true
         run: node munster-report/crawl.js
+        env:
+          # Optional: only used if you add this repo secret after getting an
+          # OpenAlex API key (see openalex.org/pricing). Safe to leave unset.
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
 
       - name: Commit updated data
+        # Runs even if the crawl step above failed, so partial progress is
+        # never lost to a bad run.
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -33,3 +48,9 @@ jobs:
             git commit -m "Update Munster living report data"
             git push
           fi
+
+      - name: Fail the job if the crawl step failed
+        # Keeps failures visible in the Actions tab/notifications, after the
+        # data from this run has already been safely committed above.
+        if: steps.crawl.outcome == 'failure'
+        run: exit 1

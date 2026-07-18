@@ -171,15 +171,18 @@
 
     <h3>Refresh schedule and the crawl-in-progress indicator</h3>
     <p>
-      OpenAlex's free tier meters usage at roughly $1 of API credit per day per contact address. A university-wide
-      crawl can involve retrieving well over one hundred thousand works, which a single day's free budget cannot
-      complete in one pass. A scheduled <a href="https://docs.github.com/actions" target="_blank" rel="noopener">GitHub Actions</a>
-      workflow therefore runs this crawl weekly, and the crawler checkpoints its position after every page so each
-      run picks up exactly where the previous one stopped, whether that was because the day's free budget ran out or
-      because the run reached its own conservative per-run limit. The progress bar at the top of this page reflects
-      that: while the initial backlog is still being fetched, the figures on this page are based on a partial (but
-      steadily growing) sample of the university's total output, not the final total. Once the backlog is complete,
-      weekly runs switch to fetching only works OpenAlex has newly indexed or updated since the previous run.
+      OpenAlex's free tier meters usage at roughly $1 of API credit per day per contact address, resetting at
+      midnight UTC. A university-wide crawl can involve retrieving well over one hundred thousand works, which a
+      single day's free budget cannot complete in one pass. A scheduled
+      <a href="https://docs.github.com/actions" target="_blank" rel="noopener">GitHub Actions</a> workflow therefore
+      runs this crawl once a day, and the crawler checkpoints its position after every page so each run picks up
+      exactly where the previous one stopped, whether that was because the day's free budget ran out or because the
+      run reached its own conservative per-run limit. If a run fails outright (a bug, a network error), whatever it
+      fetched before failing is still saved and committed, nothing is lost. The progress bar at the top of this page
+      reflects all this: while the initial backlog is still being fetched, the figures on this page are based on a
+      partial (but steadily growing) sample of the university's total output, not the final total. Once the backlog
+      is complete, daily runs switch to fetching only works OpenAlex has newly indexed or updated since the previous
+      run.
     </p>
 
     <h3>Known limitations</h3>

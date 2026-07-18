@@ -229,17 +229,35 @@ linked from the calculator's footer.
   `munster-report/data/` (a full CSV and JSON Lines export, plus a compact
   columnar `dataset.json` the report's charts read directly).
 - **Resumable by design**: OpenAlex's free tier meters usage at roughly
-  $1/day per contact email, and a university's full output can run into the
-  hundreds of thousands of works, far more than one day's budget can fetch.
-  The crawler checkpoints its cursor position to `data/progress.json` after
-  every page, so a run that gets cut off (by the daily budget or by its own
-  conservative per-run request cap) resumes exactly where it left off next
-  time. Once the full backlog has been fetched once, later runs switch to a
-  cheap "delta" pass that only asks for works created or changed since the
-  last run.
-- **Scheduled automatically**: `.github/workflows/munster-report.yml` runs
-  the crawler weekly via GitHub Actions and commits the updated data back to
-  the repo, so the published report keeps growing/refreshing on its own.
+  $1/day per contact email (resetting at midnight UTC), and a university's
+  full output can run into the hundreds of thousands of works, far more than
+  one day's budget can fetch. The crawler checkpoints its cursor position to
+  `data/progress.json` after every page, so a run that gets cut off (by the
+  daily budget or by its own conservative per-run request cap) resumes
+  exactly where it left off next time. Once the full backlog has been
+  fetched once, later runs switch to a cheap "delta" pass that only asks for
+  works created or changed since the last run.
+- **Fails safe**: if a run errors out partway through (a bug, a transient
+  network failure), `crawl.js` still checkpoints and writes out everything it
+  fetched before the failure, and the GitHub Actions workflow commits that
+  partial data (`if: always()` on the commit step) rather than discarding it,
+  then reports the run as failed so it stays visible. Nothing is ever lost to
+  a bad run; at worst, progress just pauses until the next scheduled run.
+- **Scheduled automatically, once a day**: `.github/workflows/munster-report.yml`
+  runs the crawler daily via GitHub Actions and commits the updated data back
+  to the repo. It runs daily rather than weekly specifically because
+  OpenAlex's budget itself resets daily, so a daily cadence is what lets the
+  initial backlog crawl actually make use of each day's budget instead of
+  sitting idle for most of the week.
+- **Do you need an OpenAlex account?** No account is required: the crawler
+  works entirely on OpenAlex's free, anonymous "polite pool" (identified only
+  by a contact email), and its resumable design means a large backlog just
+  takes longer to complete rather than failing. If you want it to go faster,
+  check [openalex.org/pricing](https://openalex.org/pricing) for any current
+  paid/higher-budget tier or API key option; `crawl.js` already reads an
+  optional `OPENALEX_API_KEY` environment variable, so if you obtain a key,
+  add it as a GitHub Actions repository secret named `OPENALEX_API_KEY` and
+  the crawler will pick it up automatically, no code changes needed.
 - **The report page** shows a progress bar and plain-language status line
   reflecting how much of the institution's output has been loaded so far
   (useful while the initial backlog crawl is still in progress), KPIs, an
@@ -289,4 +307,4 @@ linked from the calculator's footer.
 - [Unpaywall API](https://unpaywall.org/products/api): free PDF availability
 - [Altmetric](https://www.altmetric.com/): attention score badge widget
 - [ROR API](https://ror.org): stable institution identifier used by the Munster living report
-- [GitHub Actions](https://docs.github.com/actions): weekly scheduled crawl for the Munster living report
+- [GitHub Actions](https://docs.github.com/actions): daily scheduled crawl for the Munster living report

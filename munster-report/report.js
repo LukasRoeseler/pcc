@@ -100,12 +100,12 @@ function renderProgress() {
   } else if (progress.done) {
     card.classList.add("is-complete");
     headline.textContent = `Backlog complete: ${formatNum(fetched, 0)} works indexed`;
-    detail.textContent = "Now updating weekly with newly indexed or changed works only.";
+    detail.textContent = "Now updating daily with newly indexed or changed works only.";
     fill.style.width = "100%";
   } else {
     const pct = total ? Math.max(2, Math.min(100, Math.round((fetched / total) * 100))) : 5;
     headline.textContent = `Crawl in progress: ${formatNum(fetched, 0)}${total ? ` of ~${formatNum(total, 0)}` : ""} works loaded`;
-    detail.textContent = "OpenAlex meters free API usage at roughly $1/day, so this crawl proceeds gradually across weekly runs. The figures below reflect the partial data loaded so far and will keep growing.";
+    detail.textContent = "OpenAlex meters free API usage at roughly $1/day, so this crawl proceeds gradually across daily runs. The figures below reflect the partial data loaded so far and will keep growing.";
     fill.style.width = pct + "%";
   }
 

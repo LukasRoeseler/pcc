@@ -2,23 +2,35 @@
 // Crawls OpenAlex for every work affiliated with the University of Munster
 // (ROR https://ror.org/00pd74e08) and estimates its APC cost.
 //
-// OpenAlex meters free usage at roughly $1/day per contact email. A university's
-// full output can span hundreds of thousands of works, so a single run cannot
-// assume it will reach the end of the list. Progress is checkpointed to
-// data/progress.json after every page, so a run that gets rate-limited (or is
-// simply cut off by MAX_REQUESTS_PER_RUN) picks up exactly where it left off
-// the next time this script runs (see .github/workflows/munster-report.yml,
-// which runs it weekly).
+// OpenAlex meters free usage at roughly $1/day per contact email, and that budget
+// resets at midnight UTC, so a university's full output (which can span hundreds
+// of thousands of works) cannot be fetched in a single run. Progress is
+// checkpointed to data/progress.json after every page, so a run that gets
+// rate-limited (or is simply cut off by MAX_REQUESTS_PER_RUN) picks up exactly
+// where it left off the next time this script runs. Because the budget is a
+// daily one, .github/workflows/munster-report.yml runs it once a day so the
+// backlog keeps making steady progress; running it more often than daily would
+// not help, since the budget would already be exhausted from the prior run.
+//
+// If a run fails for any other reason (a bug, a transient network error, an
+// unexpected API response), whatever was fetched before the failure is still
+// checkpointed and written out -- see the try/catch around the crawl call in
+// main() below, and the `if: always()` commit step in the workflow.
 //
 // Once the full backlog has been fetched once, later runs switch to a cheap
 // "delta" pass that only asks OpenAlex for works created/changed since the
-// last run, rather than re-walking the entire institution's output every week.
+// last run, rather than re-walking the entire institution's output every day.
 
 const fs = require("fs");
 const path = require("path");
 
 const ROR_ID = "https://ror.org/00pd74e08";
 const CONTACT_EMAIL = "lukas.roeseler@uni-muenster.de";
+// Optional: if you ever get an OpenAlex API key (see openalex.org/pricing for
+// current premium/higher-budget options), set it as a GitHub Actions secret
+// named OPENALEX_API_KEY and it will be picked up automatically -- no other
+// code changes needed.
+const OPENALEX_API_KEY = process.env.OPENALEX_API_KEY || null;
 const DATA_DIR = path.join(__dirname, "data");
 const WORKS_FILE = path.join(DATA_DIR, "works.jsonl");
 const PROGRESS_FILE = path.join(DATA_DIR, "progress.json");
@@ -66,9 +78,10 @@ function filterQuery(sinceDate) {
 }
 
 async function fetchPage(filter, cursor) {
-  const url =
+  let url =
     `https://api.openalex.org/works?filter=${encodeURIComponent(filter)}` +
     `&per_page=${PER_PAGE}&cursor=${encodeURIComponent(cursor)}&mailto=${encodeURIComponent(CONTACT_EMAIL)}`;
+  if (OPENALEX_API_KEY) url += `&api_key=${encodeURIComponent(OPENALEX_API_KEY)}`;
   const res = await fetch(url);
   if (res.status === 429) {
     const body = await res.json().catch(() => ({}));
@@ -302,7 +315,23 @@ function buildOutputs() {
 
 async function main() {
   const progress = loadProgress();
-  const fetchedThisRun = progress.done ? await crawlDelta(progress) : await crawlBacklog(progress);
+
+  // A genuinely unexpected error (a bug, a transient network failure, a malformed
+  // API response) must not lose the pages already fetched this run: every page is
+  // already checkpointed to disk as it arrives (see appendWorks/saveProgress inside
+  // crawlBacklog/crawlDelta), so the only thing this catch needs to do is make sure
+  // progress.json and the derived CSV/dataset.json still get rebuilt from whatever
+  // is on disk, and that the process exits non-zero afterwards so the failure is
+  // still visible in the Actions log.
+  let fetchedThisRun = 0;
+  let runError = null;
+  try {
+    fetchedThisRun = progress.done ? await crawlDelta(progress) : await crawlBacklog(progress);
+  } catch (err) {
+    runError = err;
+    console.error("Crawl run hit an unexpected error; saving whatever was fetched before it failed.");
+    console.error(err);
+  }
 
   progress.lastRunAt = new Date().toISOString();
   progress.runs = (progress.runs || 0) + 1;
@@ -315,9 +344,14 @@ async function main() {
       `Deduplicated dataset now holds ${count} works` +
       (progress.totalCount ? ` (OpenAlex reports ~${progress.totalCount} total matches).` : ".")
   );
+
+  if (runError) process.exitCode = 1;
 }
 
 main().catch((err) => {
+  // Only reachable for errors in main() itself (e.g. a disk write failure), since
+  // the crawl call above already has its own try/catch. Data already written to
+  // disk up to this point is unaffected by this exiting non-zero.
   console.error(err);
-  process.exit(1);
+  process.exitCode = 1;
 });
