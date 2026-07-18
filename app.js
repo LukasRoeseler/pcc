@@ -104,6 +104,21 @@ const TRANSLATIONS = {
   chart_title_oa: { en: "Open access type breakdown", de: "Open-Access-Typ-Verteilung" },
   chart_title_oa_time: { en: "Open access type by publication year", de: "Open-Access-Typ nach Erscheinungsjahr" },
   chart_title_pdf: { en: "Free PDF availability", de: "Verfügbarkeit einer freien PDF-Datei" },
+  chart_title_cost_by_oa: { en: "Total cost by open access type", de: "Gesamtkosten nach Open-Access-Typ" },
+  chart_caption_cost_by_oa: {
+    en: "Which open access types account for the money actually spent, rather than just the number of articles.",
+    de: "Welche Open-Access-Typen für das tatsächlich ausgegebene Geld verantwortlich sind, statt nur für die Anzahl der Artikel.",
+  },
+  chart_title_citations_by_tier: { en: "Citations by cost tier", de: "Zitationen nach Kostenstufe" },
+  chart_caption_citations_by_tier: {
+    en: "Average number of citations for articles in each cost tier, using the same tiers as the cost distribution above.",
+    de: "Durchschnittliche Zitationszahl für Artikel in jeder Kostenstufe, mit denselben Stufen wie in der Kostenverteilung oben.",
+  },
+  chart_title_cost_by_year: { en: "Cost by publication year", de: "Kosten nach Erscheinungsjahr" },
+  chart_caption_cost_by_year: {
+    en: "Total spending on articles published in each year.",
+    de: "Gesamtausgaben für Artikel, die in jedem Jahr veröffentlicht wurden.",
+  },
   pdf_caption_data: {
     en: "Checked via Unpaywall for {n} article{plural}.",
     de: "Für {n} Artikel über Unpaywall geprüft.",
@@ -200,8 +215,8 @@ const TRANSLATIONS = {
   alert_parse_file_failed_prefix: { en: "Could not parse file: ", de: "Datei konnte nicht verarbeitet werden: " },
   alert_no_refs: { en: "No references to process.", de: "Keine Referenzen zu verarbeiten." },
   footnote: {
-    en: 'All processing happens in your browser. Data comes from the public <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (including <a href="https://openapc.net" target="_blank" rel="noopener">OpenAPC</a>), <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a>, <a href="https://unpaywall.org" target="_blank" rel="noopener">Unpaywall</a>, and <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a> APIs. Nothing is stored on a server. See the <a href="README.md">README</a> for methodology.',
-    de: 'Die gesamte Verarbeitung erfolgt in Ihrem Browser. Die Daten stammen von den öffentlichen APIs <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (inklusive <a href="https://openapc.net" target="_blank" rel="noopener">OpenAPC</a>), <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a>, <a href="https://unpaywall.org" target="_blank" rel="noopener">Unpaywall</a> und <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a>. Nichts wird auf einem Server gespeichert. Methodik siehe <a href="README.md">README</a>.',
+    en: 'All processing happens in your browser. Data comes from the public <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (including <a href="https://openapc.net" target="_blank" rel="noopener">OpenAPC</a>), <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a>, <a href="https://unpaywall.org" target="_blank" rel="noopener">Unpaywall</a>, and <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a> APIs. Nothing is stored on a server. See the <a href="README.md">README</a> for methodology. Journal- and article-level metrics here are meant as context, not a verdict: this tool follows the <a href="https://sfdora.org" target="_blank" rel="noopener">San Francisco Declaration on Research Assessment (DORA)</a> in not reducing a paper\'s value to its citation count or attention score.',
+    de: 'Die gesamte Verarbeitung erfolgt in Ihrem Browser. Die Daten stammen von den öffentlichen APIs <a href="https://www.crossref.org/documentation/retrieve-metadata/rest-api/" target="_blank" rel="noopener">Crossref</a>, <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a> (inklusive <a href="https://openapc.net" target="_blank" rel="noopener">OpenAPC</a>), <a href="https://pub.orcid.org" target="_blank" rel="noopener">ORCID</a>, <a href="https://unpaywall.org" target="_blank" rel="noopener">Unpaywall</a> und <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a>. Nichts wird auf einem Server gespeichert. Methodik siehe <a href="README.md">README</a>. Zeitschriften- und Artikelkennzahlen dienen hier als Einordnung, nicht als Urteil: Dieses Tool folgt der <a href="https://sfdora.org" target="_blank" rel="noopener">San Francisco Declaration on Research Assessment (DORA)</a> darin, den Wert eines Artikels nicht auf Zitationszahl oder Aufmerksamkeitswert zu reduzieren.',
   },
   glossary_apc_term: { en: "APC (Article Processing Charge)", de: "APC (Article Processing Charge)" },
   glossary_apc_def: {
@@ -245,13 +260,13 @@ const TRANSLATIONS = {
   },
   glossary_mean_citedness_term: { en: "Journal mean citedness (2-year)", de: "Ø Zitierhäufigkeit der Zeitschrift (2 Jahre)" },
   glossary_mean_citedness_def: {
-    en: "The journal's average number of citations per article over 2 years, similar in spirit to a journal impact factor. Used here as a rough benchmark for how many citations an average paper in that journal gets.",
-    de: "Die durchschnittliche Zahl an Zitationen pro Artikel einer Zeitschrift über 2 Jahre, ähnlich einem Journal Impact Factor. Dient hier als grober Richtwert, wie viele Zitationen ein durchschnittlicher Artikel dieser Zeitschrift erhält.",
+    en: "The journal's average number of citations per article over 2 years, similar in spirit to a journal impact factor. Used here as a rough benchmark for how many citations an average paper in that journal gets, not as a judgment of any individual article: DORA (the San Francisco Declaration on Research Assessment) specifically recommends against using journal-level metrics this way to evaluate one paper or its author.",
+    de: "Die durchschnittliche Zahl an Zitationen pro Artikel einer Zeitschrift über 2 Jahre, ähnlich einem Journal Impact Factor. Dient hier als grober Richtwert, wie viele Zitationen ein durchschnittlicher Artikel dieser Zeitschrift erhält, nicht als Bewertung eines einzelnen Artikels: DORA (die San Francisco Declaration on Research Assessment) rät ausdrücklich davon ab, Zeitschriftenkennzahlen so zur Bewertung eines einzelnen Artikels oder seiner Autor:innen zu nutzen.",
   },
   glossary_altmetric_term: { en: "Altmetric Attention Score", de: "Altmetric Attention Score" },
   glossary_altmetric_def: {
-    en: 'A weighted count of online attention (news, blogs, social media, policy documents, etc.) an article received. A higher score is not automatically "better"; it reflects visibility, not quality.',
-    de: 'Eine gewichtete Kennzahl der Online-Aufmerksamkeit (Nachrichten, Blogs, soziale Medien, politische Dokumente usw.), die ein Artikel erhalten hat. Ein höherer Wert ist nicht automatisch "besser", er spiegelt Sichtbarkeit wider, nicht Qualität.',
+    en: 'A weighted count of online attention (news, blogs, social media, policy documents, etc.) an article received. A higher score is not automatically "better"; it reflects visibility, not quality, in the spirit of DORA\'s caution against equating attention metrics with research value.',
+    de: 'Eine gewichtete Kennzahl der Online-Aufmerksamkeit (Nachrichten, Blogs, soziale Medien, politische Dokumente usw.), die ein Artikel erhalten hat. Ein höherer Wert ist nicht automatisch "besser", er spiegelt Sichtbarkeit wider, nicht Qualität, ganz im Sinne von DORAs Warnung davor, Aufmerksamkeitskennzahlen mit wissenschaftlichem Wert gleichzusetzen.',
   },
   glossary_cost_per_citation_term: { en: "Cost per citation", de: "Kosten pro Zitation" },
   glossary_cost_per_citation_def: {
@@ -1199,6 +1214,7 @@ function ensureRows() {
       <td class="cell-citations num-cell"></td>
       <td class="cell-meancited num-cell"></td>
       <td class="cell-altmetric"></td>
+      <td class="cell-pdf"></td>
       <td class="cell-notes"></td>
       <td class="cell-hide"><input type="checkbox" class="hide-checkbox" aria-label="Hide this row from totals"></td>
     `;
@@ -1281,6 +1297,9 @@ function renderTable() {
     tr.querySelector(".cell-notes").innerHTML = notesHtml;
     tr.querySelector(".hide-checkbox").checked = manuallyHidden;
 
+    tr.querySelector(".cell-pdf").textContent =
+      r.status === "done" ? (r.hasPdf == null ? "–" : r.hasPdf ? t("pdf_available") : t("pdf_not_available")) : "";
+
     const altCell = tr.querySelector(".cell-altmetric");
     if (r.doi && !altCell.dataset.initialized) {
       altCell.dataset.initialized = "1";
@@ -1290,7 +1309,71 @@ function renderTable() {
       altCell.textContent = "–";
     }
   });
+
+  const tbody = document.getElementById("results-tbody");
+  getDisplayOrder().forEach((idx) => tbody.appendChild(rowElements[idx]));
 }
+
+// ---------- column sorting ----------
+let sortState = { key: null, dir: 1 };
+
+function getSortValue(r, key) {
+  switch (key) {
+    case "title":
+      return (r.matchedTitle || r.raw || "").toLowerCase();
+    case "oa":
+      return r.oaStatus || "";
+    case "cost":
+      return r.cost != null ? convertCost(r.cost) : null;
+    case "citations":
+      return r.citedByCount != null ? r.citedByCount : null;
+    case "meancited":
+      return r.meanCitedness != null ? r.meanCitedness : null;
+    case "pdf":
+      return r.hasPdf === true ? 2 : r.hasPdf === false ? 1 : 0;
+    default:
+      return null;
+  }
+}
+
+function getDisplayOrder() {
+  const indices = currentResults.map((_, i) => i);
+  if (!sortState.key) return indices;
+  const key = sortState.key;
+  indices.sort((a, b) => {
+    const va = getSortValue(currentResults[a], key);
+    const vb = getSortValue(currentResults[b], key);
+    // rows without a value for this key always sink to the bottom, in either sort direction
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (va < vb) return -1 * sortState.dir;
+    if (va > vb) return 1 * sortState.dir;
+    return 0;
+  });
+  return indices;
+}
+
+document.querySelectorAll("#results-table th.sortable").forEach((th) => {
+  const activate = () => {
+    const key = th.dataset.sortKey;
+    if (sortState.key === key) {
+      sortState.dir *= -1;
+    } else {
+      sortState = { key, dir: 1 };
+    }
+    document.querySelectorAll("#results-table th.sortable").forEach((other) => other.removeAttribute("aria-sort"));
+    th.setAttribute("aria-sort", sortState.dir === 1 ? "ascending" : "descending");
+    renderTable();
+  };
+  th.addEventListener("click", activate);
+  th.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      activate();
+    }
+  });
+});
 
 function getAltmetricScore(i) {
   const cell = rowElements[i] && rowElements[i].querySelector(".cell-altmetric");
@@ -1368,6 +1451,9 @@ function updateSummary() {
   renderOaChart(finished);
   renderOaTimeChart(finished);
   renderPdfChart(finished);
+  renderCostByOaChart(finished);
+  renderCitationsByTierChart(finished);
+  renderCostByYearChart(finished);
 }
 
 // ================================================================
@@ -1385,19 +1471,24 @@ function costTierThresholds() {
   return [convertCost(t1usd), convertCost(t2usd)];
 }
 
+function costTierIndex(cost, t1, t2) {
+  if (cost === 0) return 0;
+  if (cost <= t1) return 1;
+  if (cost <= t2) return 2;
+  return 3;
+}
+
+function costTierLabels(t1, t2) {
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  const fmt = (v) => sym + Math.round(v).toLocaleString("en-US");
+  return [fmt(0), `${fmt(0)}–${fmt(t1)}`, `${fmt(t1)}–${fmt(t2)}`, `> ${fmt(t2)}`];
+}
+
 function computeHistogram(costs) {
   const [t1, t2] = costTierThresholds();
   const counts = [0, 0, 0, 0];
-  for (const c of costs) {
-    if (c === 0) counts[0]++;
-    else if (c <= t1) counts[1]++;
-    else if (c <= t2) counts[2]++;
-    else counts[3]++;
-  }
-  const sym = CURRENCY_SYMBOLS[currentCurrency];
-  const fmt = (v) => sym + Math.round(v).toLocaleString("en-US");
-  const labels = [fmt(0), `${fmt(0)}–${fmt(t1)}`, `${fmt(t1)}–${fmt(t2)}`, `> ${fmt(t2)}`];
-  return { labels, counts, thresholds: [t1, t2] };
+  for (const c of costs) counts[costTierIndex(c, t1, t2)]++;
+  return { labels: costTierLabels(t1, t2), counts, thresholds: [t1, t2] };
 }
 
 function fractionalIndexForValue(value, t1, t2) {
@@ -1471,7 +1562,7 @@ function renderHistogram(costs) {
         nBins: counts.length,
         lines: [
           mean != null
-            ? { fractionalIndex: fractionalIndexForValue(mean, t1, t2), color: "#0c1e30", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${formatNum(mean, 0)}` }
+            ? { fractionalIndex: fractionalIndexForValue(mean, t1, t2), color: "#0a4f6e", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${formatNum(mean, 0)}` }
             : null,
           median != null
             ? { fractionalIndex: fractionalIndexForValue(median, t1, t2), color: "#7a3fa0", label: `Median: ${sym}${formatNum(median, 0)}` }
@@ -1504,7 +1595,7 @@ function renderHistogram(costs) {
           legend: { display: false },
           referenceLines,
           tooltip: {
-            backgroundColor: "#0c1e30",
+            backgroundColor: "#0a4f6e",
             titleColor: "#fff",
             bodyColor: "#fff",
             padding: 10,
@@ -1563,7 +1654,7 @@ function buildScatterChart(existingChart, canvasId, points, color, xLabel, yLabe
         maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { backgroundColor: "#0c1e30", titleColor: "#fff", bodyColor: "#fff", padding: 10, callbacks: tooltipCallbacks },
+          tooltip: { backgroundColor: "#0a4f6e", titleColor: "#fff", bodyColor: "#fff", padding: 10, callbacks: tooltipCallbacks },
         },
         scales: {
           x: {
@@ -1598,7 +1689,7 @@ function renderActualScatter(finished) {
     points.push({ x: convertCost(r.cost), y: r.citedByCount, title: r.matchedTitle || r.raw });
   });
   const yLabel = currentLang === "de" ? "Tatsächliche Zitationen" : "Actual citations";
-  actualScatterChart = buildScatterChart(actualScatterChart, "cost-actual-scatter", points, "#16324f", `APC cost (${currentCurrency})`, yLabel, true);
+  actualScatterChart = buildScatterChart(actualScatterChart, "cost-actual-scatter", points, "#0e6f99", `APC cost (${currentCurrency})`, yLabel, true);
 }
 
 let expectedScatterChart = null;
@@ -1688,7 +1779,7 @@ function renderOaChart(finished) {
         plugins: {
           legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
           tooltip: {
-            backgroundColor: "#0c1e30",
+            backgroundColor: "#0a4f6e",
             titleColor: "#fff",
             bodyColor: "#fff",
             padding: 10,
@@ -1748,7 +1839,7 @@ function renderOaTimeChart(finished) {
         },
         plugins: {
           legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
-          tooltip: { backgroundColor: "#0c1e30", titleColor: "#fff", bodyColor: "#fff", padding: 10 },
+          tooltip: { backgroundColor: "#0a4f6e", titleColor: "#fff", bodyColor: "#fff", padding: 10 },
         },
       },
     });
@@ -1801,7 +1892,7 @@ function renderPdfChart(finished) {
         plugins: {
           legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
           tooltip: {
-            backgroundColor: "#0c1e30",
+            backgroundColor: "#0a4f6e",
             titleColor: "#fff",
             bodyColor: "#fff",
             padding: 10,
@@ -1822,6 +1913,191 @@ function renderPdfChart(finished) {
       ds.label = datasets[i].label;
     });
     pdfChart.update();
+  }
+}
+
+// ================================================================
+// cost by OA type (stacked bar, summing cost rather than counting rows)
+// ================================================================
+let costByOaChart = null;
+function renderCostByOaChart(finished) {
+  const canvas = document.getElementById("cost-by-oa-bar");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const sums = {};
+  OA_TYPES.forEach((oa) => (sums[oa.key] = 0));
+  finished.forEach((r) => {
+    if (r.cost == null) return;
+    const key = r.oaStatus || "unknown";
+    if (sums[key] == null) sums[key] = 0;
+    sums[key] += convertCost(r.cost);
+  });
+
+  const datasets = OA_TYPES.map((oa) => ({
+    label: oaLabel(oa.key),
+    data: [Math.round(sums[oa.key] * 100) / 100 || 0],
+    backgroundColor: oa.color,
+  }));
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+
+  if (!costByOaChart) {
+    costByOaChart = new Chart(canvas.getContext("2d"), {
+      type: "bar",
+      data: { labels: [""], datasets },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } },
+        plugins: {
+          legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          tooltip: {
+            backgroundColor: "#0a4f6e",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 10,
+            callbacks: {
+              label: (item) => {
+                const total = item.chart.data.datasets.reduce((s, d) => s + d.data[0], 0);
+                const pct = total ? Math.round((item.raw / total) * 100) : 0;
+                return `${item.dataset.label}: ${sym}${formatNum(item.raw, 2)} (${pct}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
+  } else {
+    costByOaChart.data.datasets.forEach((ds, i) => {
+      ds.data = datasets[i].data;
+      ds.label = datasets[i].label;
+    });
+    costByOaChart.update();
+  }
+}
+
+// ================================================================
+// citations by APC cost tier (average citations per fixed tier)
+// ================================================================
+let citationsByTierChart = null;
+function renderCitationsByTierChart(finished) {
+  const canvas = document.getElementById("citations-by-tier-bar");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const [t1, t2] = costTierThresholds();
+  const sums = [0, 0, 0, 0];
+  const counts = [0, 0, 0, 0];
+  finished.forEach((r) => {
+    if (r.cost == null || r.citedByCount == null) return;
+    const idx = costTierIndex(convertCost(r.cost), t1, t2);
+    sums[idx] += r.citedByCount;
+    counts[idx]++;
+  });
+  const averages = sums.map((s, i) => (counts[i] ? Math.round((s / counts[i]) * 10) / 10 : 0));
+  const labels = costTierLabels(t1, t2);
+
+  if (!citationsByTierChart) {
+    citationsByTierChart = new Chart(canvas.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: currentLang === "de" ? "Ø Zitationen" : "Avg. citations",
+            data: averages,
+            backgroundColor: COST_TIER_COLORS,
+            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
+            borderSkipped: "bottom",
+            maxBarThickness: 60,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#0a4f6e",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 10,
+            callbacks: {
+              label: (item) => `${counts[item.dataIndex]} article${counts[item.dataIndex] === 1 ? "" : "s"}, avg ${formatNum(item.parsed.y, 1)} citations`,
+            },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#55606b", font: { size: 11 } } },
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#55606b" },
+            grid: { color: "#e6ebee" },
+            title: { display: true, text: currentLang === "de" ? "Ø Zitationen" : "Average citations", color: "#55606b", font: { size: 11 } },
+          },
+        },
+      },
+    });
+  } else {
+    citationsByTierChart.data.labels = labels;
+    citationsByTierChart.data.datasets[0].data = averages;
+    citationsByTierChart.update();
+  }
+}
+
+// ================================================================
+// cost by publication year
+// ================================================================
+let costByYearChart = null;
+function renderCostByYearChart(finished) {
+  const canvas = document.getElementById("cost-by-year-bar");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const byYear = {};
+  finished.forEach((r) => {
+    if (r.cost == null || r.publicationYear == null) return;
+    byYear[r.publicationYear] = (byYear[r.publicationYear] || 0) + convertCost(r.cost);
+  });
+  const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+  const sums = years.map((y) => Math.round(byYear[y] * 100) / 100);
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+
+  if (!costByYearChart) {
+    costByYearChart = new Chart(canvas.getContext("2d"), {
+      type: "bar",
+      data: {
+        labels: years,
+        datasets: [{ label: currentLang === "de" ? "Kosten" : "Cost", data: sums, backgroundColor: "#0e6f99", borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, borderSkipped: "bottom", maxBarThickness: 32 }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#0a4f6e",
+            titleColor: "#fff",
+            bodyColor: "#fff",
+            padding: 10,
+            callbacks: { label: (item) => `${sym}${formatNum(item.parsed.y, 2)}` },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: "#55606b", font: { size: 11 } } },
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#55606b" },
+            grid: { color: "#e6ebee" },
+            title: { display: true, text: `${currentLang === "de" ? "Kosten" : "Cost"} (${currentCurrency})`, color: "#55606b", font: { size: 11 } },
+          },
+        },
+      },
+    });
+  } else {
+    costByYearChart.data.labels = years;
+    costByYearChart.data.datasets[0].data = sums;
+    costByYearChart.options.scales.y.title.text = `${currentLang === "de" ? "Kosten" : "Cost"} (${currentCurrency})`;
+    costByYearChart.update();
   }
 }
 
@@ -1872,6 +2148,9 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
   const oaImg = oaChart ? oaChart.toBase64Image() : null;
   const oaTimeImg = oaTimeChart ? oaTimeChart.toBase64Image() : null;
   const pdfImg = pdfChart ? pdfChart.toBase64Image() : null;
+  const costByOaImg = costByOaChart ? costByOaChart.toBase64Image() : null;
+  const citationsByTierImg = citationsByTierChart ? citationsByTierChart.toBase64Image() : null;
+  const costByYearImg = costByYearChart ? costByYearChart.toBase64Image() : null;
 
   const retractedCount = finished.filter((r) => r.isRetracted).length;
 
@@ -1909,22 +2188,22 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
 <title>${reportTitle}</title>
 <style>
   body { font-family: "Source Sans 3", Arial, sans-serif; color: #262b30; background: #f4f7f9; margin: 0; padding: 2rem; }
-  h1 { font-family: Georgia, serif; color: #16324f; margin-bottom: 0.2rem; }
-  h2 { font-family: Georgia, serif; color: #16324f; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  h1 { font-family: Georgia, serif; color: #0e6f99; margin-bottom: 0.2rem; }
+  h2 { font-family: Georgia, serif; color: #0e6f99; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
   .generated { color: #8b95a0; font-size: 0.85rem; margin-bottom: 1.2rem; }
   .candidate { font-size: 0.95rem; color: #55606b; margin: 0.2rem 0 1rem; }
-  .candidate a { color: #16324f; }
+  .candidate a { color: #0e6f99; }
   .retraction-banner { display: flex; gap: 8px; background: #fdeceb; color: #a4291c; border-left: 3px solid #a4291c; padding: 12px 14px; border-radius: 3px; margin: 0 0 1.2rem; font-weight: 600; }
   .retracted-badge { display: inline-block; background: #fdeceb; color: #a4291c; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
   .stats { display: flex; gap: 14px; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
   .stat { background: #eaf4f9; border-radius: 8px; padding: 12px 18px; text-align: center; min-width: 150px; }
-  .stat b { display: block; font-size: 1.3rem; color: #0c1e30; }
+  .stat b { display: block; font-size: 1.3rem; color: #0a4f6e; }
   .stat span { font-size: 0.78rem; color: #55606b; }
   img.chart { max-width: 100%; margin: 0 0 1rem; background: #fff; border-radius: 8px; padding: 10px; }
   table { border-collapse: collapse; width: 100%; background: #fff; font-size: 12.5px; box-shadow: 0 1px 3px rgba(15,40,55,0.07); }
   th, td { padding: 7px 9px; border-bottom: 1px solid #e6ebee; text-align: left; vertical-align: top; }
-  th { background: #f4f7f9; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.02em; color: #16324f; }
-  a { color: #16324f; }
+  th { background: #f4f7f9; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.02em; color: #0e6f99; }
+  a { color: #0e6f99; }
 </style>
 </head>
 <body>
@@ -1948,6 +2227,9 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
   ${oaImg ? `<h2>${t("chart_title_oa")}</h2><img class="chart" src="${oaImg}" alt="${t("chart_title_oa")}">` : ""}
   ${oaTimeImg ? `<h2>${t("chart_title_oa_time")}</h2><img class="chart" src="${oaTimeImg}" alt="${t("chart_title_oa_time")}">` : ""}
   ${pdfImg ? `<h2>${t("chart_title_pdf")}</h2><img class="chart" src="${pdfImg}" alt="${t("chart_title_pdf")}">` : ""}
+  ${costByOaImg ? `<h2>${t("chart_title_cost_by_oa")}</h2><img class="chart" src="${costByOaImg}" alt="${t("chart_title_cost_by_oa")}">` : ""}
+  ${citationsByTierImg ? `<h2>${t("chart_title_citations_by_tier")}</h2><img class="chart" src="${citationsByTierImg}" alt="${t("chart_title_citations_by_tier")}">` : ""}
+  ${costByYearImg ? `<h2>${t("chart_title_cost_by_year")}</h2><img class="chart" src="${costByYearImg}" alt="${t("chart_title_cost_by_year")}">` : ""}
   <h2>${t("results_title")}</h2>
   <table>
     <thead>

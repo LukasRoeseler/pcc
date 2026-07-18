@@ -4,24 +4,32 @@ A static, client-side web tool that estimates the article processing charges
 (APCs) behind a reference list: total cost, average cost, cost per citation,
 cost per year since your first publication, a cost-distribution histogram,
 two citation-impact scatter plots, an open-access type breakdown (overall
-and by year), a free-PDF-availability chart, and a per-article table with OA
-type, price source, citation count, journal mean citedness, and Altmetric
-attention.
+and by year), a total-cost-by-OA-type chart, a citations-by-cost-tier chart,
+a cost-by-publication-year chart, a free-PDF-availability chart, and a
+sortable per-article table with OA type, free-PDF flag, price source,
+citation count, journal mean citedness, and Altmetric attention.
 
 Everything runs in the browser. No backend, no build step, no data storage:
 just static files you can host on GitHub Pages. Available in English and
 German (toggle top-right), with a plain-language glossary for anyone
-unfamiliar with APCs, OA types, or these metrics.
+unfamiliar with APCs, OA types, or these metrics. A companion, standing
+analysis for the whole University of Munster lives alongside it; see
+[`munster-report/`](munster-report/index.html) below.
 
 ## Hosting on GitHub Pages
 
 1. Create a new GitHub repository (or a folder in an existing one) and push
-   the contents of this folder (`index.html`, `style.css`, `app.js`, `favicon.svg`).
+   the contents of this folder (`index.html`, `style.css`, `app.js`, `favicon.svg`,
+   `mucos-logo.png`, and the `munster-report/` folder).
 2. In the repo settings, enable **Pages** and deploy from the branch/folder
    containing these files.
 3. Visit the generated `https://<user>.github.io/<repo>/` URL.
 
-No secrets, API keys, or server config are required.
+No secrets, API keys, or server config are required to host the calculator
+itself. The `munster-report/` companion report additionally relies on a
+scheduled GitHub Actions workflow (`.github/workflows/munster-report.yml`)
+that needs no secrets either, since it commits back with the repo's own
+built-in `GITHUB_TOKEN`.
 
 ## How to use it
 
@@ -66,6 +74,12 @@ No secrets, API keys, or server config are required.
   €2,500, **dark red** = above €2,500 (thresholds are defined in EUR and
   converted to whichever currency is selected, so an article's tier never
   changes just because you switched currency).
+- **Sortable table**: click any column header with a ↕ arrow (reference
+  title, OA type, cost, citations, or journal mean citedness) to sort the
+  table by that column; click again to reverse the direction. Rows without a
+  value for the chosen column always sink to the bottom regardless of
+  direction, and sorting never changes totals, charts, or exports, since
+  those always use every (non-hidden) row.
 
 ## Using this for a hiring committee (Berufungskommission)
 
@@ -97,10 +111,11 @@ Alongside cost, each row also shows:
   official donut badge (click through for the full breakdown). Altmetric's raw
   API requires a paid key, so this uses their free, officially supported
   embeddable badge widget instead.
-- **Free PDF availability** (aggregate chart only, requires a contact email):
-  checked via [Unpaywall](https://unpaywall.org), regardless of formal OA type.
-  Preprints are always counted as having a PDF, without an extra API call,
-  since their host repositories serve one directly.
+- **Free PDF availability** (per-row table column and an aggregate chart;
+  requires a contact email): checked via [Unpaywall](https://unpaywall.org),
+  regardless of formal OA type. Preprints are always counted as having a
+  PDF, without an extra API call, since their host repositories serve one
+  directly.
 
 The two scatter plots read together: the first plots APC cost against actual
 citations; the second plots the journal's mean citedness against the same
@@ -199,6 +214,41 @@ all field IDs) and average the `apc_list.value_usd` of the returned works.
 This is more representative of *actual* pricing than a prestige ranking,
 though it is still list price, not necessarily the amount paid.
 
+## PCC at the University of Munster (living institutional report)
+
+Alongside the single-reference-list calculator above, [`munster-report/`](munster-report/index.html)
+is a standing analysis covering every publication OpenAlex associates with
+the University of Munster as a whole (identified by its stable
+[ROR identifier](https://ror.org/00pd74e08), unaffected by the university's
+recent rename from "Westfalische Wilhelms-Universitat Munster (WWU)"). It is
+linked from the calculator's footer.
+
+- **`munster-report/crawl.js`**: a Node script that pages through OpenAlex's
+  works API for the institution, estimates each work's APC cost with the
+  same priority logic as the calculator above, and writes the results to
+  `munster-report/data/` (a full CSV and JSON Lines export, plus a compact
+  columnar `dataset.json` the report's charts read directly).
+- **Resumable by design**: OpenAlex's free tier meters usage at roughly
+  $1/day per contact email, and a university's full output can run into the
+  hundreds of thousands of works, far more than one day's budget can fetch.
+  The crawler checkpoints its cursor position to `data/progress.json` after
+  every page, so a run that gets cut off (by the daily budget or by its own
+  conservative per-run request cap) resumes exactly where it left off next
+  time. Once the full backlog has been fetched once, later runs switch to a
+  cheap "delta" pass that only asks for works created or changed since the
+  last run.
+- **Scheduled automatically**: `.github/workflows/munster-report.yml` runs
+  the crawler weekly via GitHub Actions and commits the updated data back to
+  the repo, so the published report keeps growing/refreshing on its own.
+- **The report page** shows a progress bar and plain-language status line
+  reflecting how much of the institution's output has been loaded so far
+  (useful while the initial backlog crawl is still in progress), KPIs, an
+  OA-type breakdown, a free-to-read-availability chart, cost-by-year and
+  citations-by-cost-tier charts, and top-15 charts for cost by publisher and
+  by discipline, filterable by a Munster-first-author toggle, publisher, and
+  discipline. A full methods section on the page itself documents exactly
+  where every field comes from and its known limitations.
+
 ## Known limitations
 
 - **Reference parsing is heuristic.** It looks for numbered-list markers
@@ -238,3 +288,5 @@ though it is still list price, not necessarily the amount paid.
 - [ORCID Public API](https://info.orcid.org/documentation/): public works list and person name by ORCID iD
 - [Unpaywall API](https://unpaywall.org/products/api): free PDF availability
 - [Altmetric](https://www.altmetric.com/): attention score badge widget
+- [ROR API](https://ror.org): stable institution identifier used by the Munster living report
+- [GitHub Actions](https://docs.github.com/actions): weekly scheduled crawl for the Munster living report

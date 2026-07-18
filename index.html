@@ -16,17 +16,20 @@
 
 <div class="settings-bar">
   <div class="wrap settings-bar-row">
-    <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language / Sprache">
-      <button type="button" class="lang-btn active" data-lang="en">EN</button>
-      <button type="button" class="lang-btn" data-lang="de">DE</button>
-    </div>
-    <div class="currency-toggle">
-      <label for="currency-select" class="visually-hidden" data-i18n="currency_label">Currency</label>
-      <select id="currency-select" aria-label="Currency">
-        <option value="EUR" selected>€ EUR</option>
-        <option value="USD">$ USD</option>
-        <option value="GBP">£ GBP</option>
-      </select>
+    <img src="mucos-logo.png" alt="MüCOS: Münster Center for Open Science" class="mucos-logo">
+    <div class="settings-bar-controls">
+      <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language / Sprache">
+        <button type="button" class="lang-btn active" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="de">DE</button>
+      </div>
+      <div class="currency-toggle">
+        <label for="currency-select" class="visually-hidden" data-i18n="currency_label">Currency</label>
+        <select id="currency-select" aria-label="Currency">
+          <option value="EUR" selected>€ EUR</option>
+          <option value="USD">$ USD</option>
+          <option value="GBP">£ GBP</option>
+        </select>
+      </div>
     </div>
   </div>
 </div>
@@ -228,6 +231,24 @@
     </div>
     <p class="hint chart-caption" id="pdf-caption"></p>
 
+    <h3 class="chart-title" data-i18n="chart_title_cost_by_oa">Total cost by open access type</h3>
+    <div class="chart-container chart-container-oa">
+      <canvas id="cost-by-oa-bar" role="img" aria-label="Stacked bar chart of total APC cost broken down by open access type"></canvas>
+    </div>
+    <p class="hint chart-caption" data-i18n="chart_caption_cost_by_oa">Which open access types account for the money actually spent, rather than just the number of articles.</p>
+
+    <h3 class="chart-title" data-i18n="chart_title_citations_by_tier">Citations by cost tier</h3>
+    <div class="chart-container">
+      <canvas id="citations-by-tier-bar" role="img" aria-label="Bar chart of average citations within each APC cost tier"></canvas>
+    </div>
+    <p class="hint chart-caption" data-i18n="chart_caption_citations_by_tier">Average number of citations for articles in each cost tier, using the same tiers as the cost distribution above.</p>
+
+    <h3 class="chart-title" data-i18n="chart_title_cost_by_year">Cost by publication year</h3>
+    <div class="chart-container">
+      <canvas id="cost-by-year-bar" role="img" aria-label="Bar chart of total APC cost by publication year"></canvas>
+    </div>
+    <p class="hint chart-caption" data-i18n="chart_caption_cost_by_year">Total spending on articles published in each year.</p>
+
     <div class="table-actions">
       <button id="export-csv-btn" class="btn-secondary" data-i18n="export_csv_btn">Export CSV</button>
       <button id="export-html-btn" class="btn-secondary" data-i18n="export_html_btn">Export HTML report</button>
@@ -238,14 +259,15 @@
         <thead>
           <tr>
             <th scope="col">#</th>
-            <th scope="col" data-i18n="th_ref">Reference / matched title</th>
+            <th scope="col" class="sortable" data-sort-key="title" tabindex="0" data-i18n="th_ref">Reference / matched title</th>
             <th scope="col">DOI</th>
-            <th scope="col" data-i18n="th_oa">OA type</th>
-            <th scope="col" id="th-cost" data-i18n="th_cost">APC cost</th>
+            <th scope="col" class="sortable" data-sort-key="oa" tabindex="0" data-i18n="th_oa">OA type</th>
+            <th scope="col" class="sortable" id="th-cost" data-sort-key="cost" tabindex="0" data-i18n="th_cost">APC cost</th>
             <th scope="col" data-i18n="th_source">Price source</th>
-            <th scope="col" data-i18n="th_citations" title="Number of times this article has been cited (OpenAlex)">Citations</th>
-            <th scope="col" data-i18n="th_meancited" title="The hosting journal's average citations per article over 2 years (OpenAlex), similar in spirit to a journal impact factor">Journal mean citedness (2yr)</th>
+            <th scope="col" class="sortable" data-sort-key="citations" tabindex="0" data-i18n="th_citations" title="Number of times this article has been cited (OpenAlex)">Citations</th>
+            <th scope="col" class="sortable" data-sort-key="meancited" tabindex="0" data-i18n="th_meancited" title="The hosting journal's average citations per article over 2 years (OpenAlex), similar in spirit to a journal impact factor">Journal mean citedness (2yr)</th>
             <th scope="col" data-i18n="th_altmetric" title="Altmetric Attention Score: weighted online attention (news, blogs, social media, policy)">Altmetric</th>
+            <th scope="col" class="sortable" data-sort-key="pdf" tabindex="0" data-i18n="th_pdf">Free PDF</th>
             <th scope="col" data-i18n="th_notes">Notes</th>
             <th scope="col" data-i18n="th_hide">Hide</th>
           </tr>
@@ -260,6 +282,7 @@
 <footer class="site-footer">
   <div class="wrap">
     <p>Publication Cost Calculator. See the <a href="README.md">documentation and methodology</a>.</p>
+    <p class="footer-report-link"><a href="munster-report/index.html">PCC at the University of Münster</a>: living APC report for all publications affiliated with the University of Münster.</p>
   </div>
 </footer>
 
