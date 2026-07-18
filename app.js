@@ -85,8 +85,8 @@ const TRANSLATIONS = {
   stat_cost_per_citation: { en: "Cost per citation", de: "Kosten pro Zitation" },
   chart_title_hist: { en: "Cost distribution", de: "Kostenverteilung" },
   chart_caption_hist: {
-    en: "Distribution of APC cost across {n} priced article{plural}. Dashed lines mark the mean and median. Full values are in the table below.",
-    de: "Verteilung der APC-Kosten über {n} bepreiste Artikel. Gestrichelte Linien markieren Mittelwert und Median. Alle Werte stehen in der Tabelle unten.",
+    en: "{n} priced article{plural} grouped into fixed cost tiers (free, up to 400, up to 2,500, and above, converted from EUR). Dashed lines mark the mean and median. Full values are in the table below.",
+    de: "{n} bepreiste Artikel, gruppiert in feste Kostenstufen (kostenlos, bis 400, bis 2.500, darüber, umgerechnet aus EUR). Gestrichelte Linien markieren Mittelwert und Median. Alle Werte stehen in der Tabelle unten.",
   },
   chart_title_scatter: { en: "Cost vs. citation impact", de: "Kosten vs. Zitationswirkung" },
   chart_caption_scatter: {
@@ -1139,37 +1139,39 @@ function updateSummary() {
 // ================================================================
 // histogram (with mean/median reference lines)
 // ================================================================
-function niceBinWidth(raw) {
-  if (!isFinite(raw) || raw <= 0) return 1;
-  const exponent = Math.floor(Math.log10(raw));
-  const fraction = raw / Math.pow(10, exponent);
-  let niceFraction;
-  if (fraction <= 1) niceFraction = 1;
-  else if (fraction <= 2) niceFraction = 2;
-  else if (fraction <= 5) niceFraction = 5;
-  else niceFraction = 10;
-  return niceFraction * Math.pow(10, exponent);
+// Fixed cost tiers (thresholds defined in EUR, converted to the active
+// display currency so bin membership doesn't shift when currency changes).
+const COST_TIER_THRESHOLDS_EUR = [400, 2500];
+const COST_TIER_COLORS = ["#2f8f5b", "#d9a521", "#c1443c", "#8f2626"]; // zero / low / mid / high
+
+function costTierThresholds() {
+  const eurPerUsd = exchangeRates.EUR || 0.92;
+  const t1usd = COST_TIER_THRESHOLDS_EUR[0] / eurPerUsd;
+  const t2usd = COST_TIER_THRESHOLDS_EUR[1] / eurPerUsd;
+  return [convertCost(t1usd), convertCost(t2usd)];
 }
 
 function computeHistogram(costs) {
-  if (costs.length === 0) return { labels: [], counts: [], binWidth: 1 };
-  const max = Math.max(...costs);
-  if (max === 0) {
-    return { labels: ["0"], counts: [costs.length], binWidth: 1 };
-  }
-  const targetBins = Math.min(10, Math.max(5, Math.round(Math.sqrt(costs.length))));
-  const width = niceBinWidth(max / targetBins);
-  const nBins = Math.max(1, Math.ceil((max + 0.01) / width));
-  const counts = new Array(nBins).fill(0);
+  const [t1, t2] = costTierThresholds();
+  const counts = [0, 0, 0, 0];
   for (const c of costs) {
-    let idx = Math.floor(c / width);
-    if (idx >= nBins) idx = nBins - 1;
-    if (idx < 0) idx = 0;
-    counts[idx]++;
+    if (c === 0) counts[0]++;
+    else if (c <= t1) counts[1]++;
+    else if (c <= t2) counts[2]++;
+    else counts[3]++;
   }
   const sym = CURRENCY_SYMBOLS[currentCurrency];
-  const labels = counts.map((_, i) => `${sym}${Math.round(i * width).toLocaleString("en-US")}–${sym}${Math.round((i + 1) * width).toLocaleString("en-US")}`);
-  return { labels, counts, binWidth: width };
+  const fmt = (v) => sym + Math.round(v).toLocaleString("en-US");
+  const labels = [fmt(0), `${fmt(0)}–${fmt(t1)}`, `${fmt(t1)}–${fmt(t2)}`, `> ${fmt(t2)}`];
+  return { labels, counts, thresholds: [t1, t2] };
+}
+
+function fractionalIndexForValue(value, t1, t2) {
+  if (value <= 0) return 0.5;
+  if (value <= t1) return 1 + value / t1;
+  if (value <= t2) return 2 + (value - t1) / (t2 - t1);
+  const span = t2 - t1 || 1;
+  return 3 + Math.min(1, (value - t2) / span);
 }
 
 function computeMeanMedian(values) {
@@ -1187,13 +1189,12 @@ const referenceLinesPlugin = {
   afterDraw(chart) {
     const cfg = chart.options.plugins && chart.options.plugins.referenceLines;
     if (!cfg || !cfg.lines || !cfg.lines.length) return;
-    const { ctx, chartArea, scales } = chart;
-    const xScale = scales.x;
+    const { ctx, chartArea } = chart;
     const nBins = cfg.nBins || 1;
     const bandWidth = (chartArea.right - chartArea.left) / nBins;
     ctx.save();
     cfg.lines.forEach((line) => {
-      const fractionalIndex = cfg.binWidth ? line.value / cfg.binWidth : 0;
+      const fractionalIndex = line.fractionalIndex;
       const xPixel = chartArea.left + fractionalIndex * bandWidth;
       if (xPixel < chartArea.left - 1 || xPixel > chartArea.right + 1) return;
       ctx.beginPath();
@@ -1219,7 +1220,8 @@ let costChart = null;
 function renderHistogram(costs) {
   const canvas = document.getElementById("cost-histogram");
   if (!canvas || typeof Chart === "undefined") return;
-  const { labels, counts, binWidth } = computeHistogram(costs);
+  const { labels, counts, thresholds } = computeHistogram(costs);
+  const [t1, t2] = thresholds;
   const { mean, median } = computeMeanMedian(costs);
   const sym = CURRENCY_SYMBOLS[currentCurrency];
 
@@ -1230,17 +1232,19 @@ function renderHistogram(costs) {
       : "";
   }
 
-  const referenceLines =
-    costs.length && Math.max(...costs) > 0
-      ? {
-          binWidth,
-          nBins: counts.length,
-          lines: [
-            mean != null ? { value: mean, color: "#0f6f96", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${mean.toFixed(0)}` } : null,
-            median != null ? { value: median, color: "#d1652c", label: `${currentLang === "de" ? "Median" : "Median"}: ${sym}${median.toFixed(0)}` } : null,
-          ].filter(Boolean),
-        }
-      : { lines: [] };
+  const referenceLines = costs.length
+    ? {
+        nBins: counts.length,
+        lines: [
+          mean != null
+            ? { fractionalIndex: fractionalIndexForValue(mean, t1, t2), color: "#0f6f96", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${mean.toFixed(0)}` }
+            : null,
+          median != null
+            ? { fractionalIndex: fractionalIndexForValue(median, t1, t2), color: "#7a3fa0", label: `Median: ${sym}${median.toFixed(0)}` }
+            : null,
+        ].filter(Boolean),
+      }
+    : { lines: [] };
 
   if (!costChart) {
     costChart = new Chart(canvas.getContext("2d"), {
@@ -1251,7 +1255,7 @@ function renderHistogram(costs) {
           {
             label: "Articles",
             data: counts,
-            backgroundColor: "#1583ad",
+            backgroundColor: COST_TIER_COLORS,
             borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
             borderSkipped: "bottom",
             maxBarThickness: 32,
@@ -1295,6 +1299,7 @@ function renderHistogram(costs) {
   } else {
     costChart.data.labels = labels;
     costChart.data.datasets[0].data = counts;
+    costChart.data.datasets[0].backgroundColor = COST_TIER_COLORS;
     costChart.options.plugins.referenceLines = referenceLines;
     costChart.options.scales.x.title.text = `APC cost (${currentCurrency})`;
     costChart.update();

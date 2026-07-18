@@ -23,6 +23,12 @@ with APCs, OA types, or these metrics.
   in the table, dimmed and struck through, rather than disappearing.
 - ORCID iDs can be entered in any common form: `0000-0002-1825-0097`,
   `orcid.org/0000-0002-1825-0097`, or a full `https://orcid.org/...` URL.
+- The cost histogram uses fixed, color-coded tiers rather than a dynamic
+  scale, so the colors mean the same thing every time: **green** = free (€0),
+  **yellow** = up to €400, **red** = up to €2,500, **dark red** = above €2,500
+  (thresholds are defined in EUR and converted to whichever currency is
+  selected, so an article's tier never changes just because you switched
+  currency).
 
 ## Hosting on GitHub Pages
 
