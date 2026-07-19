@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-<circle cx="24" cy="36" r="19" fill="#eebb3c" stroke="#ad7f14" stroke-width="2.5"/>
-<text x="24" y="43" font-size="20" font-weight="700" text-anchor="middle" fill="#ad7f14" font-family="Georgia,serif">$</text>
-<circle cx="44" cy="22" r="14" fill="#f6d474" stroke="#ad7f14" stroke-width="2.5"/>
-<text x="44" y="27.5" font-size="15" font-weight="700" text-anchor="middle" fill="#ad7f14" font-family="Georgia,serif">&#8364;</text>
-</svg>
