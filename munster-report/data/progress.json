@@ -1,9 +1,9 @@
 {
-  "cursor": "*",
-  "fetchedCount": 0,
-  "totalCount": null,
+  "cursor": "IlsxMDAuMCwgOTMyLCAnaHR0cHM6Ly9vcGVuYWxleC5vcmcvVzI1NjAwMTIzMDUnXSI=",
+  "fetchedCount": 60000,
+  "totalCount": 117035,
   "done": false,
   "backlogCompletedAt": null,
-  "lastRunAt": null,
-  "runs": 0
+  "lastRunAt": "2026-07-19T05:05:53.099Z",
+  "runs": 1
 }
