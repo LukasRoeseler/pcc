@@ -12,24 +12,18 @@ citation count, journal mean citedness, and Altmetric attention.
 Everything runs in the browser. No backend, no build step, no data storage:
 just static files you can host on GitHub Pages. Available in English and
 German (toggle top-right), with a plain-language glossary for anyone
-unfamiliar with APCs, OA types, or these metrics. A companion, standing
-analysis for the whole University of Munster lives alongside it; see
-[`munster-report/`](munster-report/index.html) below.
+unfamiliar with APCs, OA types, or these metrics.
 
 ## Hosting on GitHub Pages
 
 1. Create a new GitHub repository (or a folder in an existing one) and push
-   the contents of this folder (`index.html`, `style.css`, `app.js`, `favicon.svg`,
-   `mucos-logo.png`, and the `munster-report/` folder).
+   the contents of this folder (`index.html`, `style.css`, `app.js`,
+   `favicon.svg`, `mucos-logo.png`).
 2. In the repo settings, enable **Pages** and deploy from the branch/folder
    containing these files.
 3. Visit the generated `https://<user>.github.io/<repo>/` URL.
 
-No secrets, API keys, or server config are required to host the calculator
-itself. The `munster-report/` companion report additionally relies on a
-scheduled GitHub Actions workflow (`.github/workflows/munster-report.yml`)
-that needs no secrets either, since it commits back with the repo's own
-built-in `GITHUB_TOKEN`.
+No secrets, API keys, or server config are required.
 
 ## How to use it
 
@@ -214,59 +208,6 @@ all field IDs) and average the `apc_list.value_usd` of the returned works.
 This is more representative of *actual* pricing than a prestige ranking,
 though it is still list price, not necessarily the amount paid.
 
-## PCC at the University of Munster (living institutional report)
-
-Alongside the single-reference-list calculator above, [`munster-report/`](munster-report/index.html)
-is a standing analysis covering every publication OpenAlex associates with
-the University of Munster as a whole (identified by its stable
-[ROR identifier](https://ror.org/00pd74e08), unaffected by the university's
-recent rename from "Westfalische Wilhelms-Universitat Munster (WWU)"). It is
-linked from the calculator's footer.
-
-- **`munster-report/crawl.js`**: a Node script that pages through OpenAlex's
-  works API for the institution, estimates each work's APC cost with the
-  same priority logic as the calculator above, and writes the results to
-  `munster-report/data/` (a full CSV and JSON Lines export, plus a compact
-  columnar `dataset.json` the report's charts read directly).
-- **Resumable by design**: OpenAlex's free tier meters usage at roughly
-  $1/day per contact email (resetting at midnight UTC), and a university's
-  full output can run into the hundreds of thousands of works, far more than
-  one day's budget can fetch. The crawler checkpoints its cursor position to
-  `data/progress.json` after every page, so a run that gets cut off (by the
-  daily budget or by its own conservative per-run request cap) resumes
-  exactly where it left off next time. Once the full backlog has been
-  fetched once, later runs switch to a cheap "delta" pass that only asks for
-  works created or changed since the last run.
-- **Fails safe**: if a run errors out partway through (a bug, a transient
-  network failure), `crawl.js` still checkpoints and writes out everything it
-  fetched before the failure, and the GitHub Actions workflow commits that
-  partial data (`if: always()` on the commit step) rather than discarding it,
-  then reports the run as failed so it stays visible. Nothing is ever lost to
-  a bad run; at worst, progress just pauses until the next scheduled run.
-- **Scheduled automatically, once a day**: `.github/workflows/munster-report.yml`
-  runs the crawler daily via GitHub Actions and commits the updated data back
-  to the repo. It runs daily rather than weekly specifically because
-  OpenAlex's budget itself resets daily, so a daily cadence is what lets the
-  initial backlog crawl actually make use of each day's budget instead of
-  sitting idle for most of the week.
-- **Do you need an OpenAlex account?** No account is required: the crawler
-  works entirely on OpenAlex's free, anonymous "polite pool" (identified only
-  by a contact email), and its resumable design means a large backlog just
-  takes longer to complete rather than failing. If you want it to go faster,
-  check [openalex.org/pricing](https://openalex.org/pricing) for any current
-  paid/higher-budget tier or API key option; `crawl.js` already reads an
-  optional `OPENALEX_API_KEY` environment variable, so if you obtain a key,
-  add it as a GitHub Actions repository secret named `OPENALEX_API_KEY` and
-  the crawler will pick it up automatically, no code changes needed.
-- **The report page** shows a progress bar and plain-language status line
-  reflecting how much of the institution's output has been loaded so far
-  (useful while the initial backlog crawl is still in progress), KPIs, an
-  OA-type breakdown, a free-to-read-availability chart, cost-by-year and
-  citations-by-cost-tier charts, and top-15 charts for cost by publisher and
-  by discipline, filterable by a Munster-first-author toggle, publisher, and
-  discipline. A full methods section on the page itself documents exactly
-  where every field comes from and its known limitations.
-
 ## Known limitations
 
 - **Reference parsing is heuristic.** It looks for numbered-list markers
@@ -306,5 +247,3 @@ linked from the calculator's footer.
 - [ORCID Public API](https://info.orcid.org/documentation/): public works list and person name by ORCID iD
 - [Unpaywall API](https://unpaywall.org/products/api): free PDF availability
 - [Altmetric](https://www.altmetric.com/): attention score badge widget
-- [ROR API](https://ror.org): stable institution identifier used by the Munster living report
-- [GitHub Actions](https://docs.github.com/actions): daily scheduled crawl for the Munster living report

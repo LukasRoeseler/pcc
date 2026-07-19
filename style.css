@@ -598,7 +598,6 @@ tr.excluded-row .cell-cost { text-decoration: line-through; }
   text-align: center;
 }
 .site-footer a { color: var(--primary); }
-.footer-report-link { margin-top: 4px; font-size: 0.82rem; opacity: 0.85; }
 
 /* ---------- mobile ---------- */
 
