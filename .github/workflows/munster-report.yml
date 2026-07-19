@@ -2,10 +2,12 @@ name: Update Munster living report
 
 on:
   schedule:
-    # Daily at 03:00 UTC. OpenAlex's free usage budget resets daily, so a daily
+    # Daily at 03:17 UTC. OpenAlex's free usage budget resets daily, so a daily
     # run (rather than weekly) lets the initial backlog crawl make steady
-    # progress instead of losing most of the week idle.
-    - cron: "0 3 * * *"
+    # progress instead of losing most of the week idle. Deliberately off the
+    # hour: GitHub's own docs warn that schedules pinned to :00 are the most
+    # likely to be delayed or silently dropped under platform load.
+    - cron: "17 3 * * *"
   workflow_dispatch: {}
 
 permissions:
