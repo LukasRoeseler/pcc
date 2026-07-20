@@ -17,6 +17,7 @@ let firstAuthorOnly = false;
 let userOrcidNorm = "";
 let candidateName = null;
 let candidateOrcidId = null;
+let tableSearchQuery = "";
 const exchangeRates = { EUR: 0.92, GBP: 0.78 }; // per 1 USD; overwritten by live rates if available
 const CURRENCY_SYMBOLS = { USD: "$", EUR: "€", GBP: "£" };
 
@@ -24,6 +25,43 @@ const CURRENCY_SYMBOLS = { USD: "$", EUR: "€", GBP: "£" };
 // i18n
 // ================================================================
 const TRANSLATIONS = {
+  wip_modal_title: { en: "Work in progress", de: "In Entwicklung" },
+  wip_modal_body: {
+    en: "This tool is experimental and still actively under development. It has not yet been thoroughly tested: DOI matches, cost estimates, and other figures can occasionally be wrong. Always spot-check the review step and the results table before relying on a report, and use the per-row <strong>Hide</strong> checkbox to correct anything mismatched.",
+    de: "Dieses Tool ist experimentell und befindet sich noch in aktiver Entwicklung. Es wurde noch nicht ausführlich getestet: DOI-Zuordnungen, Kostenschätzungen und andere Werte können gelegentlich falsch sein. Überprüfen Sie den Schritt „Überprüfen“ und die Ergebnistabelle stets, bevor Sie sich auf einen Bericht verlassen, und nutzen Sie die <strong>Ausblenden</strong>-Checkbox pro Zeile, um Fehlzuordnungen zu korrigieren.",
+  },
+  wip_modal_dont_show: { en: "Don't show this again on this device", de: "Auf diesem Gerät nicht mehr anzeigen" },
+  wip_modal_close: { en: "Got it", de: "Verstanden" },
+  table_search_label: { en: "Search results table", de: "Ergebnistabelle durchsuchen" },
+  table_search_placeholder: { en: "Search title, journal, DOI, notes…", de: "Titel, Zeitschrift, DOI, Notizen durchsuchen…" },
+  table_search_count: {
+    en: "Showing {shown} of {total}",
+    de: "{shown} von {total} angezeigt",
+  },
+  compare_toggle_label: { en: "Compare two ORCID iDs", de: "Zwei ORCID-iDs vergleichen" },
+  experimental_badge: { en: "Experimental", de: "Experimentell" },
+  compare_intro: {
+    en: "Fetches and prices each ORCID iD's publications independently, then shows the resulting cost KPIs side by side. This is a new, lightly tested feature: treat the numbers as a rough comparison, not a final report.",
+    de: "Ruft die Publikationen jeder ORCID-iD unabhängig ab und bepreist sie, und zeigt dann die resultierenden Kosten-Kennzahlen nebeneinander. Dies ist eine neue, wenig getestete Funktion: Betrachten Sie die Zahlen als grobe Vergleichsgrundlage, nicht als endgültigen Bericht.",
+  },
+  compare_orcid_a_label: { en: "First ORCID iD", de: "Erste ORCID-iD" },
+  compare_orcid_b_label: { en: "Second ORCID iD", de: "Zweite ORCID-iD" },
+  compare_run_btn: { en: "Compare", de: "Vergleichen" },
+  compare_run_btn_busy: { en: "Comparing…", de: "Vergleiche…" },
+  compare_alert_invalid: {
+    en: "Enter two valid ORCID iDs to compare.",
+    de: "Geben Sie zwei gültige ORCID-iDs zum Vergleichen ein.",
+  },
+  compare_status_fetching: { en: "Fetching works…", de: "Werke werden abgerufen…" },
+  compare_status_progress: { en: "{done} / {total} priced", de: "{done} / {total} bepreist" },
+  compare_status_failed: { en: "Failed: {error}", de: "Fehlgeschlagen: {error}" },
+  compare_stat_total: { en: "Total cost", de: "Gesamtkosten" },
+  compare_stat_avg_all: { en: "Avg. per article", de: "Ø pro Artikel" },
+  compare_stat_avg_paid: { en: "Avg. per paid article", de: "Ø pro bezahltem Artikel" },
+  compare_stat_determined: { en: "Determined costs", de: "Bestimmte Kosten" },
+  compare_stat_cost_per_citation: { en: "Cost per citation", de: "Kosten pro Zitation" },
+  compare_stat_cost_per_year: { en: "Cost per year", de: "Kosten pro Jahr" },
+  compare_stat_works: { en: "Works found", de: "Gefundene Werke" },
   currency_label: { en: "Currency", de: "Währung" },
   hero_title: { en: "Publication Cost Calculator", de: "Publication Cost Calculator" },
   hero_subtitle: {
@@ -111,8 +149,12 @@ const TRANSLATIONS = {
   },
   chart_title_citations_by_tier: { en: "Citations by cost tier", de: "Zitationen nach Kostenstufe" },
   chart_caption_citations_by_tier: {
-    en: "Average number of citations for articles in each cost tier, using the same tiers as the cost distribution above.",
-    de: "Durchschnittliche Zitationszahl für Artikel in jeder Kostenstufe, mit denselben Stufen wie in der Kostenverteilung oben.",
+    en: "Each violin shows the full citation distribution for articles in that cost tier (not just an average), with a solid dash marking the median. Free (€0) articles are their own tier; paid articles are split into finer tiers than the cost distribution above.",
+    de: "Jede Violine zeigt die vollständige Zitationsverteilung für Artikel dieser Kostenstufe (nicht nur einen Durchschnitt), mit einem durchgezogenen Strich für den Median. Kostenfreie (€0) Artikel bilden ihre eigene Stufe; kostenpflichtige Artikel sind feiner unterteilt als in der Kostenverteilung oben.",
+  },
+  chart_note_citations_by_tier_offscale: {
+    en: "Y-axis capped at {cap} citations (the 95th percentile). A small number of highly-cited works fall above this and are excluded from the shape shown, though they still count toward each tier's median.",
+    de: "Y-Achse begrenzt auf {cap} Zitationen (95. Perzentil). Eine kleine Zahl stark zitierter Arbeiten liegt darüber und ist in der gezeigten Form nicht enthalten, fließt aber weiterhin in den Median jeder Stufe ein.",
   },
   chart_title_cost_by_year: { en: "Cost by publication year", de: "Kosten nach Erscheinungsjahr" },
   chart_caption_cost_by_year: {
@@ -313,6 +355,9 @@ function applyTranslations() {
   document.querySelectorAll("[data-i18n-html]").forEach((el) => {
     el.innerHTML = t(el.dataset.i18nHtml);
   });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
   const orcidInput = document.getElementById("orcid-input");
   if (orcidInput) orcidInput.placeholder = "0000-0002-1825-0097" + (currentLang === "de" ? " oder orcid.org/0000-0002-1825-0097" : " or orcid.org/0000-0002-1825-0097");
   updateCostHeader();
@@ -410,20 +455,44 @@ function isValidOrcid(id) {
   return /^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(id);
 }
 
-document.getElementById("user-orcid-input").addEventListener("input", (e) => {
-  userOrcidNorm = normalizeOrcidInput(e.target.value);
-  if (currentResults.length) {
-    renderTable();
-    updateSummary();
-  }
-});
+// The first-author filter has two equivalent entry points: the "Advanced options"
+// panel (shown before calculating, useful when pasting/uploading a list) and a
+// mirrored control in the Results section itself (useful after an ORCID fetch,
+// without scrolling back up). Both stay in sync with the same underlying state.
+const ORCID_TOGGLE_IDS = ["first-author-toggle", "results-first-author-toggle"];
+const ORCID_INPUT_IDS = ["user-orcid-input", "results-user-orcid-input"];
 
-document.getElementById("first-author-toggle").addEventListener("change", (e) => {
-  firstAuthorOnly = e.target.checked;
+function setUserOrcid(value, sourceId) {
+  userOrcidNorm = normalizeOrcidInput(value);
+  ORCID_INPUT_IDS.forEach((id) => {
+    if (id === sourceId) return;
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+  });
   if (currentResults.length) {
     renderTable();
     updateSummary();
   }
+}
+
+function setFirstAuthorOnly(checked, sourceId) {
+  firstAuthorOnly = checked;
+  ORCID_TOGGLE_IDS.forEach((id) => {
+    if (id === sourceId) return;
+    const el = document.getElementById(id);
+    if (el) el.checked = checked;
+  });
+  if (currentResults.length) {
+    renderTable();
+    updateSummary();
+  }
+}
+
+ORCID_INPUT_IDS.forEach((id) => {
+  document.getElementById(id).addEventListener("input", (e) => setUserOrcid(e.target.value, id));
+});
+ORCID_TOGGLE_IDS.forEach((id) => {
+  document.getElementById(id).addEventListener("change", (e) => setFirstAuthorOnly(e.target.checked, id));
 });
 
 function authorPositionFor(r) {
@@ -1031,12 +1100,8 @@ async function handleFetchOrcid(orcidRaw) {
     }
     candidateName = personName;
     candidateOrcidId = orcid;
-    // auto-fill "your ORCID" for the first-author filter, if empty
-    const userOrcidField = document.getElementById("user-orcid-input");
-    if (!userOrcidField.value.trim()) {
-      userOrcidField.value = orcid;
-      userOrcidNorm = orcid;
-    }
+    // auto-fill "your ORCID" for the first-author filter (both entry points), if empty
+    if (!userOrcidNorm) setUserOrcid(orcid);
     showReviewList();
   } catch (e) {
     alert(t("alert_orcid_failed_prefix") + e.message + t("alert_orcid_failed_hint"));
@@ -1310,9 +1375,34 @@ function renderTable() {
     }
   });
 
+  const order = getDisplayOrder();
+  let shown = 0;
+  order.forEach((idx) => {
+    const match = matchesTableSearch(currentResults[idx]);
+    rowElements[idx].style.display = match ? "" : "none";
+    if (match) shown++;
+  });
+  const countEl = document.getElementById("table-search-count");
+  if (countEl) countEl.textContent = tableSearchQuery ? t("table_search_count", { shown, total: currentResults.length }) : "";
+
   const tbody = document.getElementById("results-tbody");
-  getDisplayOrder().forEach((idx) => tbody.appendChild(rowElements[idx]));
+  order.forEach((idx) => tbody.appendChild(rowElements[idx]));
 }
+
+// ---------- table search ----------
+function matchesTableSearch(r) {
+  if (!tableSearchQuery) return true;
+  const haystack = [r.matchedTitle, r.raw, r.doi, r.journal, r.field, r.sourceKey ? formatSource(r.sourceKey, r.sourceParams) : "", r.oaStatus ? oaLabel(r.oaStatus) : "", r.noteKey ? t(r.noteKey) : r.notes]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(tableSearchQuery);
+}
+
+document.getElementById("table-search").addEventListener("input", (e) => {
+  tableSearchQuery = e.target.value.trim().toLowerCase();
+  if (currentResults.length) renderTable();
+});
 
 // ---------- column sorting ----------
 let sortState = { key: null, dir: 1 };
@@ -1409,17 +1499,9 @@ function renderCandidateAndRetraction(finished) {
   }
 }
 
-function updateSummary() {
-  const active = filterActive();
-  document.getElementById("first-author-note").style.display = firstAuthorOnly ? "block" : "none";
-  document.getElementById("first-author-note").textContent = firstAuthorOnly
-    ? active
-      ? t("first_author_active_note")
-      : t("first_author_missing_orcid")
-    : "";
-
-  const finished = currentResults.filter((r) => r.status === "done" && isIncluded(r));
-  renderCandidateAndRetraction(finished);
+// Pure KPI math shared between the main results summary and the experimental
+// ORCID-compare feature below, so both stay consistent by construction.
+function computeKpiStats(finished) {
   const determined = finished.filter((r) => r.cost != null);
   const determinedConverted = determined.map((r) => convertCost(r.cost));
   const totalCost = determinedConverted.reduce((s, c) => s + c, 0);
@@ -1437,15 +1519,40 @@ function updateSummary() {
   const yearsSpan = earliestYear != null ? Math.max(1, new Date().getFullYear() - earliestYear + 1) : null;
   const costPerYear = yearsSpan != null ? totalCost / yearsSpan : null;
 
-  const sym = CURRENCY_SYMBOLS[currentCurrency];
-  document.getElementById("stat-total-cost").textContent = sym + formatNum(totalCost, 2);
-  document.getElementById("stat-avg-all").textContent = sym + formatNum(avgAll, 2);
-  document.getElementById("stat-avg-paid").textContent = sym + formatNum(avgPaid, 2);
-  document.getElementById("stat-determined").textContent = `${formatNum(determined.length, 0)} / ${formatNum(finished.length, 0)}`;
-  document.getElementById("stat-cost-per-citation").textContent = costPerCitation != null ? sym + formatNum(costPerCitation, 2) : "–";
-  document.getElementById("stat-cost-per-year").textContent = costPerYear != null ? sym + formatNum(costPerYear, 2) : "–";
+  return {
+    finishedCount: finished.length,
+    determinedCount: determined.length,
+    determinedConverted,
+    totalCost,
+    avgAll,
+    avgPaid,
+    costPerCitation,
+    costPerYear,
+  };
+}
 
-  renderHistogram(determinedConverted);
+function updateSummary() {
+  const active = filterActive();
+  document.getElementById("first-author-note").style.display = firstAuthorOnly ? "block" : "none";
+  document.getElementById("first-author-note").textContent = firstAuthorOnly
+    ? active
+      ? t("first_author_active_note")
+      : t("first_author_missing_orcid")
+    : "";
+
+  const finished = currentResults.filter((r) => r.status === "done" && isIncluded(r));
+  renderCandidateAndRetraction(finished);
+  const stats = computeKpiStats(finished);
+
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  document.getElementById("stat-total-cost").textContent = sym + formatNum(stats.totalCost, 2);
+  document.getElementById("stat-avg-all").textContent = sym + formatNum(stats.avgAll, 2);
+  document.getElementById("stat-avg-paid").textContent = sym + formatNum(stats.avgPaid, 2);
+  document.getElementById("stat-determined").textContent = `${formatNum(stats.determinedCount, 0)} / ${formatNum(stats.finishedCount, 0)}`;
+  document.getElementById("stat-cost-per-citation").textContent = stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "–";
+  document.getElementById("stat-cost-per-year").textContent = stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–";
+
+  renderHistogram(stats.determinedConverted);
   renderActualScatter(finished);
   renderExpectedScatter(finished);
   renderOaChart(finished);
@@ -1464,24 +1571,83 @@ function updateSummary() {
 const COST_TIER_THRESHOLDS_EUR = [400, 2500];
 const COST_TIER_COLORS = ["#2f8f5b", "#d9a521", "#c1443c", "#8f2626"]; // zero / low / mid / high
 
-function costTierThresholds() {
+// Finer-grained tiers used only for the citations-by-cost-tier violin plot below:
+// free (€0) articles still get their own single tier, but paid articles are split
+// into more, narrower bins than the main cost histogram above.
+const CITATION_TIER_THRESHOLDS_EUR = [500, 1000, 1500, 2500, 4000];
+const CITATION_TIER_COLORS = ["#2f8f5b", "#7fae4a", "#b6c93a", "#d9a521", "#e2802e", "#c1443c", "#8f2626"];
+
+function tierThresholdsFromEur(eurThresholds) {
   const eurPerUsd = exchangeRates.EUR || 0.92;
-  const t1usd = COST_TIER_THRESHOLDS_EUR[0] / eurPerUsd;
-  const t2usd = COST_TIER_THRESHOLDS_EUR[1] / eurPerUsd;
-  return [convertCost(t1usd), convertCost(t2usd)];
+  return eurThresholds.map((v) => convertCost(v / eurPerUsd));
+}
+
+function tierIndexForThresholds(cost, thresholds) {
+  if (cost === 0) return 0;
+  for (let i = 0; i < thresholds.length; i++) {
+    if (cost <= thresholds[i]) return i + 1;
+  }
+  return thresholds.length + 1;
+}
+
+function tierLabelsForThresholds(thresholds) {
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  const fmt = (v) => sym + Math.round(v).toLocaleString("en-US");
+  const labels = [fmt(0)];
+  for (let i = 0; i < thresholds.length; i++) {
+    labels.push(`${fmt(i === 0 ? 0 : thresholds[i - 1])}–${fmt(thresholds[i])}`);
+  }
+  labels.push(`> ${fmt(thresholds[thresholds.length - 1])}`);
+  return labels;
+}
+
+function costTierThresholds() {
+  return tierThresholdsFromEur(COST_TIER_THRESHOLDS_EUR);
 }
 
 function costTierIndex(cost, t1, t2) {
-  if (cost === 0) return 0;
-  if (cost <= t1) return 1;
-  if (cost <= t2) return 2;
-  return 3;
+  return tierIndexForThresholds(cost, [t1, t2]);
 }
 
 function costTierLabels(t1, t2) {
-  const sym = CURRENCY_SYMBOLS[currentCurrency];
-  const fmt = (v) => sym + Math.round(v).toLocaleString("en-US");
-  return [fmt(0), `${fmt(0)}–${fmt(t1)}`, `${fmt(t1)}–${fmt(t2)}`, `> ${fmt(t2)}`];
+  return tierLabelsForThresholds([t1, t2]);
+}
+
+function citationTierThresholds() {
+  return tierThresholdsFromEur(CITATION_TIER_THRESHOLDS_EUR);
+}
+
+function citationTierLabels(thresholds) {
+  return tierLabelsForThresholds(thresholds);
+}
+
+// ================================================================
+// generic violin-plot shape helpers (one violin per category, showing the full
+// value distribution rather than just an average, with the median marked)
+// ================================================================
+function medianOfSorted(sortedVals) {
+  const n = sortedVals.length;
+  if (!n) return 0;
+  return n % 2 ? sortedVals[(n - 1) / 2] : (sortedVals[n / 2 - 1] + sortedVals[n / 2]) / 2;
+}
+
+function violinShape(values, bins, cap) {
+  if (!values.length) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const median = medianOfSorted(sorted);
+  const min = sorted[0];
+  const max = sorted[sorted.length - 1];
+  const clippedMax = Math.min(max, cap);
+  const clipped = values.filter((v) => v <= cap);
+  const offScale = values.length - clipped.length;
+  if (clippedMax === min) return { min, max: clippedMax, median, offScale, curve: [{ y: min, d: 1 }] };
+  const bw = (clippedMax - min) / bins;
+  const counts = new Array(bins + 1).fill(0);
+  clipped.forEach((v) => {
+    counts[Math.min(bins, Math.floor((v - min) / bw))]++;
+  });
+  const maxCount = Math.max(...counts);
+  return { min, max: clippedMax, median, offScale, curve: counts.map((c, i) => ({ y: min + i * bw, d: c / maxCount })) };
 }
 
 function computeHistogram(costs) {
@@ -1984,65 +2150,119 @@ function renderCitationsByTierChart(finished) {
   const canvas = document.getElementById("citations-by-tier-bar");
   if (!canvas || typeof Chart === "undefined") return;
 
-  const [t1, t2] = costTierThresholds();
-  const sums = [0, 0, 0, 0];
-  const counts = [0, 0, 0, 0];
+  const VIOLIN_BINS = 24;
+  const HALF_WIDTH = 0.42;
+
+  const thresholds = citationTierThresholds();
+  const labels = citationTierLabels(thresholds);
+  const tierValues = labels.map(() => []);
   finished.forEach((r) => {
     if (r.cost == null || r.citedByCount == null) return;
-    const idx = costTierIndex(convertCost(r.cost), t1, t2);
-    sums[idx] += r.citedByCount;
-    counts[idx]++;
+    const idx = tierIndexForThresholds(convertCost(r.cost), thresholds);
+    tierValues[idx].push(r.citedByCount);
   });
-  const averages = sums.map((s, i) => (counts[i] ? Math.round((s / counts[i]) * 10) / 10 : 0));
-  const labels = costTierLabels(t1, t2);
 
-  if (!citationsByTierChart) {
-    citationsByTierChart = new Chart(canvas.getContext("2d"), {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: currentLang === "de" ? "Ø Zitationen" : "Avg. citations",
-            data: averages,
-            backgroundColor: COST_TIER_COLORS,
-            borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 },
-            borderSkipped: "bottom",
-            maxBarThickness: 60,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: "#0a4f6e",
-            titleColor: "#fff",
-            bodyColor: "#fff",
-            padding: 10,
-            callbacks: {
-              label: (item) => `${counts[item.dataIndex]} article${counts[item.dataIndex] === 1 ? "" : "s"}, avg ${formatNum(item.parsed.y, 1)} citations`,
+  const allVals = tierValues.flat().sort((a, b) => a - b);
+  const cap = Math.max(allVals.length ? allVals[Math.min(allVals.length - 1, Math.floor(allVals.length * 0.95))] : 0, 1);
+  const violins = tierValues.map((vals, i) => ({
+    label: labels[i],
+    color: CITATION_TIER_COLORS[i % CITATION_TIER_COLORS.length],
+    count: vals.length,
+    shape: violinShape(vals, VIOLIN_BINS, cap),
+  }));
+
+  const datasets = [];
+  violins.forEach((v, ti) => {
+    if (!v.shape) return;
+    const rightSide = v.shape.curve.map((p) => ({ x: ti + p.d * HALF_WIDTH, y: p.y }));
+    const leftSide = v.shape.curve
+      .slice()
+      .reverse()
+      .map((p) => ({ x: ti - p.d * HALF_WIDTH, y: p.y }));
+    datasets.push({
+      label: v.label,
+      tierIndex: ti,
+      data: [...rightSide, ...leftSide],
+      borderColor: v.color,
+      backgroundColor: v.color + "55",
+      fill: true,
+      borderWidth: 1.5,
+      pointRadius: 0,
+      tension: 0.25,
+      showLine: true,
+    });
+    datasets.push({
+      label: v.label + " (median)",
+      tierIndex: ti,
+      data: [
+        { x: ti - HALF_WIDTH * 0.85, y: v.shape.median },
+        { x: ti + HALF_WIDTH * 0.85, y: v.shape.median },
+      ],
+      borderColor: "#111111",
+      borderWidth: 3,
+      pointRadius: 0,
+      fill: false,
+      showLine: true,
+    });
+  });
+
+  const anyOffScale = violins.some((v) => v.shape && v.shape.offScale > 0);
+  const noteEl = document.getElementById("citations-by-tier-note");
+  if (noteEl) noteEl.textContent = anyOffScale ? t("chart_note_citations_by_tier_offscale", { cap: formatNum(Math.round(cap), 0) }) : "";
+
+  if (citationsByTierChart) {
+    citationsByTierChart.destroy();
+    citationsByTierChart = null;
+  }
+  citationsByTierChart = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: { datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      parsing: false,
+      interaction: { mode: "nearest", intersect: true },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "#0a4f6e",
+          titleColor: "#fff",
+          bodyColor: "#fff",
+          padding: 10,
+          callbacks: {
+            title: (items) => (items.length ? violins[items[0].dataset.tierIndex].label : ""),
+            label: (c) => {
+              const v = violins[c.dataset.tierIndex];
+              if (!v) return "";
+              const medianTxt = v.shape ? formatNum(v.shape.median, 1) : "0";
+              return `${v.count} article${v.count === 1 ? "" : "s"}, median ${medianTxt} citations`;
             },
           },
         },
-        scales: {
-          x: { grid: { display: false }, ticks: { color: "#55606b", font: { size: 11 } } },
-          y: {
-            beginAtZero: true,
-            ticks: { color: "#55606b" },
-            grid: { color: "#e6ebee" },
-            title: { display: true, text: currentLang === "de" ? "Ø Zitationen" : "Average citations", color: "#55606b", font: { size: 11 } },
+      },
+      scales: {
+        x: {
+          type: "linear",
+          min: -0.6,
+          max: labels.length - 0.4,
+          grid: { display: false },
+          ticks: {
+            color: "#55606b",
+            stepSize: 1,
+            font: { size: labels.length > 5 ? 9 : 11 },
+            callback: (v) => (Number.isInteger(v) && v >= 0 && v < labels.length ? labels[v] : ""),
           },
         },
+        y: {
+          beginAtZero: true,
+          max: cap,
+          ticks: { color: "#55606b" },
+          grid: { color: "#e6ebee" },
+          title: { display: true, text: currentLang === "de" ? "Zitationen" : "Citations", color: "#55606b", font: { size: 11 } },
+        },
       },
-    });
-  } else {
-    citationsByTierChart.data.labels = labels;
-    citationsByTierChart.data.datasets[0].data = averages;
-    citationsByTierChart.update();
-  }
+    },
+  });
 }
 
 // ================================================================
@@ -2132,54 +2352,265 @@ document.getElementById("export-csv-btn").addEventListener("click", () => {
 });
 
 // ---------- HTML export ----------
+// The exported report embeds real Chart.js canvases (not static PNGs) plus a
+// searchable/sortable table, so it behaves like the live page (hover tooltips,
+// legend toggling, etc.) even when opened offline later with no server behind it.
+// To stay in sync with the live charts without duplicating their logic, the
+// relevant render functions are bundled into the export via Function#toString()
+// -- the export always runs the SAME code that just built the charts on screen.
+// The two Chart.js plugins they depend on (dashed reference lines, in-bar percent
+// labels) are small and stable, so those are copied as literal source instead.
+const EXPORT_BUNDLED_FNS = [
+  convertCost,
+  formatNum,
+  t,
+  tierThresholdsFromEur,
+  tierIndexForThresholds,
+  tierLabelsForThresholds,
+  costTierThresholds,
+  costTierIndex,
+  costTierLabels,
+  citationTierThresholds,
+  citationTierLabels,
+  medianOfSorted,
+  violinShape,
+  computeHistogram,
+  computeMeanMedian,
+  fractionalIndexForValue,
+  oaLabel,
+  buildScatterChart,
+  renderActualScatter,
+  renderExpectedScatter,
+  renderHistogram,
+  renderOaChart,
+  renderOaTimeChart,
+  renderPdfChart,
+  renderCostByOaChart,
+  renderCitationsByTierChart,
+  renderCostByYearChart,
+  getSortValue,
+  escapeHtml,
+];
+
+const EXPORT_PLUGINS_SRC = `
+const referenceLinesPlugin = {
+  id: "referenceLines",
+  afterDraw(chart) {
+    const cfg = chart.options.plugins && chart.options.plugins.referenceLines;
+    if (!cfg || !cfg.lines || !cfg.lines.length) return;
+    const { ctx, chartArea } = chart;
+    const nBins = cfg.nBins || 1;
+    const bandWidth = (chartArea.right - chartArea.left) / nBins;
+    ctx.save();
+    cfg.lines.forEach((line) => {
+      const fractionalIndex = line.fractionalIndex;
+      const xPixel = chartArea.left + fractionalIndex * bandWidth;
+      if (xPixel < chartArea.left - 1 || xPixel > chartArea.right + 1) return;
+      ctx.beginPath();
+      ctx.moveTo(xPixel, chartArea.top);
+      ctx.lineTo(xPixel, chartArea.bottom);
+      ctx.strokeStyle = line.color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = line.color;
+      ctx.font = "600 11px 'Source Sans 3', sans-serif";
+      const nearRight = xPixel > chartArea.right - 70;
+      ctx.textAlign = nearRight ? "right" : "left";
+      ctx.fillText(line.label, xPixel + (nearRight ? -6 : 6), chartArea.top + 12);
+    });
+    ctx.restore();
+  },
+};
+Chart.register(referenceLinesPlugin);
+
+const percentLabelPlugin = {
+  id: "percentLabels",
+  afterDatasetsDraw(chart) {
+    if (chart.canvas.id !== "oa-stacked-bar" && chart.canvas.id !== "pdf-stacked-bar") return;
+    const { ctx } = chart;
+    ctx.save();
+    ctx.font = "600 11px 'Source Sans 3', sans-serif";
+    ctx.fillStyle = "#fff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    chart.data.datasets.forEach((ds, dsIndex) => {
+      const meta = chart.getDatasetMeta(dsIndex);
+      meta.data.forEach((bar, i) => {
+        const value = ds.data[i];
+        const total = chart.data.datasets.reduce((s, d) => s + d.data[i], 0);
+        if (!value || !total) return;
+        const pct = Math.round((value / total) * 100);
+        const width = bar.width;
+        if (width < 26 || pct < 5) return;
+        ctx.fillText(pct + "%", bar.x, bar.y);
+      });
+    });
+    ctx.restore();
+  },
+};
+Chart.register(percentLabelPlugin);
+`;
+
+function safeJsonForScript(obj) {
+  // Guards against a "</script>" substring in user-sourced text (a title, note,
+  // journal name, ...) prematurely closing the <script> tag it's embedded in.
+  return JSON.stringify(obj).replace(/</g, "\\u003c");
+}
+
 document.getElementById("export-html-btn").addEventListener("click", () => {
   const finished = currentResults.filter((r) => r.status === "done" && isIncluded(r));
-  const determined = finished.filter((r) => r.cost != null);
-  const determinedConverted = determined.map((r) => convertCost(r.cost));
-  const totalCost = determinedConverted.reduce((s, c) => s + c, 0);
-  const avgAll = determinedConverted.length ? totalCost / determinedConverted.length : 0;
-  const paidOnly = determinedConverted.filter((c) => c > 0);
-  const avgPaid = paidOnly.length ? paidOnly.reduce((s, c) => s + c, 0) / paidOnly.length : 0;
+  const stats = computeKpiStats(finished);
   const sym = CURRENCY_SYMBOLS[currentCurrency];
-
-  const histImg = costChart ? costChart.toBase64Image() : null;
-  const actualScatterImg = actualScatterChart ? actualScatterChart.toBase64Image() : null;
-  const expectedScatterImg = expectedScatterChart ? expectedScatterChart.toBase64Image() : null;
-  const oaImg = oaChart ? oaChart.toBase64Image() : null;
-  const oaTimeImg = oaTimeChart ? oaTimeChart.toBase64Image() : null;
-  const pdfImg = pdfChart ? pdfChart.toBase64Image() : null;
-  const costByOaImg = costByOaChart ? costByOaChart.toBase64Image() : null;
-  const citationsByTierImg = citationsByTierChart ? citationsByTierChart.toBase64Image() : null;
-  const costByYearImg = costByYearChart ? costByYearChart.toBase64Image() : null;
-
   const retractedCount = finished.filter((r) => r.isRetracted).length;
 
-  const rowsHtml = currentResults
+  // Minimal per-row fields the bundled chart functions need (same shape as the
+  // live `finished` rows), kept in USD like the live data -- the bundled
+  // convertCost()/currentCurrency below do the display-currency conversion.
+  const exportFinished = finished.map((r) => ({
+    matchedTitle: r.matchedTitle,
+    raw: r.raw,
+    cost: r.cost,
+    citedByCount: r.citedByCount,
+    oaStatus: r.oaStatus,
+    publicationYear: r.publicationYear,
+    meanCitedness: r.meanCitedness,
+    hasPdf: r.hasPdf,
+  }));
+
+  // Table rows: same shape as `r`, so the bundled getSortValue() works unmodified;
+  // display text (source, notes) is resolved once here since it never changes.
+  const exportRows = currentResults
     .map((r, i) => ({ r, i }))
     .filter(({ r }) => !r.manuallyHidden)
-    .map(({ r, i }) => {
-      const altScore = getAltmetricScore(i);
-      const pdfText = r.hasPdf == null ? "–" : r.hasPdf ? t("pdf_available") : t("pdf_not_available");
-      const titleCell = (r.isRetracted ? `<span class="retracted-badge">${escapeHtml(t("retracted_badge"))}</span> ` : "") + escapeHtml(r.matchedTitle || r.raw);
-      return `<tr>
-        <td>${i + 1}</td>
-        <td>${titleCell}</td>
-        <td>${r.doi ? `<a href="https://doi.org/${escapeHtml(r.doi)}">${escapeHtml(r.doi)}</a>` : "–"}</td>
-        <td>${r.oaStatus ? escapeHtml(oaLabel(r.oaStatus)) : "–"}</td>
-        <td>${r.cost != null ? sym + formatNum(convertCost(r.cost), 2) : "–"}</td>
-        <td>${r.sourceKey ? escapeHtml(formatSource(r.sourceKey, r.sourceParams)) : ""}</td>
-        <td>${r.citedByCount != null ? r.citedByCount.toLocaleString("en-US") : "–"}</td>
-        <td>${r.meanCitedness != null ? formatNum(r.meanCitedness, 2) : "–"}</td>
-        <td>${altScore != null ? formatNum(altScore, 0) : "–"}</td>
-        <td>${escapeHtml(pdfText)}</td>
-        <td>${r.publicationYear || "–"}</td>
-        <td>${escapeHtml([r.journal, r.field].filter(Boolean).join(" · "))}</td>
-        <td>${r.noteKey ? escapeHtml(t(r.noteKey)) : ""}</td>
-      </tr>`;
-    })
-    .join("");
+    .map(({ r, i }) => ({
+      idx: i + 1,
+      doi: r.doi || null,
+      matchedTitle: r.matchedTitle || null,
+      raw: r.raw,
+      isRetracted: !!r.isRetracted,
+      oaStatus: r.oaStatus || null,
+      cost: r.cost != null ? r.cost : null,
+      sourceText: r.sourceKey ? formatSource(r.sourceKey, r.sourceParams) : "",
+      citedByCount: r.citedByCount != null ? r.citedByCount : null,
+      meanCitedness: r.meanCitedness != null ? r.meanCitedness : null,
+      hasPdf: r.hasPdf == null ? null : !!r.hasPdf,
+      publicationYear: r.publicationYear || null,
+      journalField: [r.journal, r.field].filter(Boolean).join(" · "),
+      notes: r.noteKey ? t(r.noteKey) : "",
+    }));
 
   const reportTitle = candidateName ? `Publication Cost Report for ${escapeHtml(candidateName)}` : "Publication Cost Report";
+  const bundledFnsSrc = EXPORT_BUNDLED_FNS.map((fn) => fn.toString()).join("\n\n");
+  const hadEmail = !!getEmail();
+
+  const bootScript = `
+${EXPORT_PLUGINS_SRC}
+
+const CURRENCY_SYMBOLS = ${safeJsonForScript(CURRENCY_SYMBOLS)};
+const TRANSLATIONS = ${safeJsonForScript(TRANSLATIONS)};
+const OA_TYPES = ${safeJsonForScript(OA_TYPES)};
+const COST_TIER_COLORS = ${safeJsonForScript(COST_TIER_COLORS)};
+const COST_TIER_THRESHOLDS_EUR = ${safeJsonForScript(COST_TIER_THRESHOLDS_EUR)};
+const CITATION_TIER_THRESHOLDS_EUR = ${safeJsonForScript(CITATION_TIER_THRESHOLDS_EUR)};
+const CITATION_TIER_COLORS = ${safeJsonForScript(CITATION_TIER_COLORS)};
+let currentCurrency = ${safeJsonForScript(currentCurrency)};
+let currentLang = ${safeJsonForScript(currentLang)};
+const exchangeRates = ${safeJsonForScript(exchangeRates)};
+function getEmail() { return ${hadEmail ? '"export@example.com"' : '""'}; }
+
+${bundledFnsSrc}
+
+let costChart = null, actualScatterChart = null, expectedScatterChart = null;
+let oaChart = null, oaTimeChart = null, pdfChart = null;
+let costByOaChart = null, citationsByTierChart = null, costByYearChart = null;
+
+const EXPORT_FINISHED = ${safeJsonForScript(exportFinished)};
+const EXPORT_ROWS = ${safeJsonForScript(exportRows)};
+
+renderHistogram(EXPORT_FINISHED.filter((r) => r.cost != null).map((r) => convertCost(r.cost)));
+renderActualScatter(EXPORT_FINISHED);
+renderExpectedScatter(EXPORT_FINISHED);
+renderOaChart(EXPORT_FINISHED);
+renderOaTimeChart(EXPORT_FINISHED);
+renderPdfChart(EXPORT_FINISHED);
+renderCostByOaChart(EXPORT_FINISHED);
+renderCitationsByTierChart(EXPORT_FINISHED);
+renderCostByYearChart(EXPORT_FINISHED);
+
+// ---------- results table: sortable + searchable, mirroring the live page ----------
+function exportRowHtml(row) {
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  const titleHtml = (row.isRetracted ? '<span class="retracted-badge">' + escapeHtml(t("retracted_badge")) + "</span> " : "") + escapeHtml(row.matchedTitle || row.raw);
+  const doiHtml = row.doi ? '<a href="https://doi.org/' + escapeHtml(row.doi) + '" target="_blank" rel="noopener">' + escapeHtml(row.doi) + "</a>" : "–";
+  const oaHtml = row.oaStatus ? escapeHtml(oaLabel(row.oaStatus)) : "–";
+  const costText = row.cost != null ? sym + formatNum(convertCost(row.cost), 2) : "–";
+  const pdfText = row.hasPdf == null ? "–" : row.hasPdf ? t("pdf_available") : t("pdf_not_available");
+  const altHtml = row.doi
+    ? '<div class="altmetric-embed" data-badge-type="donut" data-badge-popover="left" data-hide-no-mentions="true" data-doi="' + escapeHtml(row.doi) + '"></div>'
+    : "–";
+  return (
+    "<tr><td>" + row.idx + "</td><td>" + titleHtml + "</td><td>" + doiHtml + "</td><td>" + oaHtml + "</td><td>" + costText + "</td>" +
+    "<td>" + escapeHtml(row.sourceText) + "</td><td>" + (row.citedByCount != null ? row.citedByCount.toLocaleString("en-US") : "–") + "</td>" +
+    "<td>" + (row.meanCitedness != null ? formatNum(row.meanCitedness, 2) : "–") + '</td><td class="alt-cell">' + altHtml + "</td>" +
+    "<td>" + escapeHtml(pdfText) + "</td><td>" + (row.publicationYear || "–") + "</td><td>" + escapeHtml(row.journalField) + "</td><td>" + escapeHtml(row.notes) + "</td></tr>"
+  );
+}
+
+let exportSortState = { key: null, dir: 1 };
+let exportSearchQuery = "";
+
+function exportRowMatchesSearch(row) {
+  if (!exportSearchQuery) return true;
+  const haystack = [row.matchedTitle, row.raw, row.doi, row.journalField, row.sourceText, row.oaStatus ? oaLabel(row.oaStatus) : "", row.notes]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return haystack.includes(exportSearchQuery);
+}
+
+function exportDisplayOrder() {
+  const indices = EXPORT_ROWS.map((_, i) => i).filter((i) => exportRowMatchesSearch(EXPORT_ROWS[i]));
+  if (!exportSortState.key) return indices;
+  const key = exportSortState.key;
+  indices.sort((a, b) => {
+    const va = getSortValue(EXPORT_ROWS[a], key);
+    const vb = getSortValue(EXPORT_ROWS[b], key);
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    if (va < vb) return -1 * exportSortState.dir;
+    if (va > vb) return 1 * exportSortState.dir;
+    return 0;
+  });
+  return indices;
+}
+
+function renderExportTable() {
+  const order = exportDisplayOrder();
+  document.getElementById("results-tbody").innerHTML = order.map((i) => exportRowHtml(EXPORT_ROWS[i])).join("");
+  const countEl = document.getElementById("table-search-count");
+  if (countEl) countEl.textContent = exportSearchQuery ? "Showing " + order.length + " of " + EXPORT_ROWS.length : "";
+  if (window._altmetric_embed_init) window._altmetric_embed_init(document.getElementById("results-tbody"));
+}
+
+document.getElementById("table-search").addEventListener("input", (e) => {
+  exportSearchQuery = e.target.value.trim().toLowerCase();
+  renderExportTable();
+});
+document.querySelectorAll("#results-table th.sortable").forEach((th) => {
+  th.addEventListener("click", () => {
+    const key = th.dataset.sortKey;
+    if (exportSortState.key === key) exportSortState.dir *= -1;
+    else exportSortState = { key, dir: 1 };
+    document.querySelectorAll("#results-table th.sortable").forEach((o) => o.removeAttribute("aria-sort"));
+    th.setAttribute("aria-sort", exportSortState.dir === 1 ? "ascending" : "descending");
+    renderExportTable();
+  });
+});
+renderExportTable();
+`;
 
   const html = `<!DOCTYPE html>
 <html lang="${currentLang}">
@@ -2188,6 +2619,7 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
 <title>${reportTitle}</title>
 <style>
   body { font-family: "Source Sans 3", Arial, sans-serif; color: #262b30; background: #f4f7f9; margin: 0; padding: 2rem; }
+  .wrap { max-width: 880px; margin: 0 auto; }
   h1 { font-family: Georgia, serif; color: #0e6f99; margin-bottom: 0.2rem; }
   h2 { font-family: Georgia, serif; color: #0e6f99; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
   .generated { color: #8b95a0; font-size: 0.85rem; margin-bottom: 1.2rem; }
@@ -2199,16 +2631,27 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
   .stat { background: #eaf4f9; border-radius: 8px; padding: 12px 18px; text-align: center; min-width: 150px; }
   .stat b { display: block; font-size: 1.3rem; color: #0a4f6e; }
   .stat span { font-size: 0.78rem; color: #55606b; }
-  img.chart { max-width: 100%; margin: 0 0 1rem; background: #fff; border-radius: 8px; padding: 10px; }
+  .first-author-note { color: #55606b; font-size: 0.9rem; margin: 0 0 1rem; }
+  .chart-container { position: relative; height: 260px; background: #fff; border-radius: 8px; padding: 14px; margin: 0 0 6px; }
+  .chart-container-violin { height: 320px; }
+  .chart-container-oa { height: 130px; }
+  .chart-caption { color: #8b95a0; font-size: 0.82rem; margin: 0 0 1.2rem; }
+  .table-search-row { display: flex; align-items: center; gap: 8px; border: 1px solid #d7dee3; border-radius: 3px; padding: 7px 10px; margin: 1.5rem 0 12px; background: #fff; color: #8b95a0; }
+  .table-search-row input[type="search"] { flex: 1; border: none; outline: none; font-size: 0.9rem; color: #262b30; background: transparent; }
   table { border-collapse: collapse; width: 100%; background: #fff; font-size: 12.5px; box-shadow: 0 1px 3px rgba(15,40,55,0.07); }
   th, td { padding: 7px 9px; border-bottom: 1px solid #e6ebee; text-align: left; vertical-align: top; }
   th { background: #f4f7f9; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.02em; color: #0e6f99; }
+  th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+  th.sortable::after { content: "\\2195"; margin-left: 5px; opacity: 0.35; font-size: 0.85em; }
+  th.sortable[aria-sort="ascending"]::after { content: "\\2191"; opacity: 1; }
+  th.sortable[aria-sort="descending"]::after { content: "\\2193"; opacity: 1; }
   a { color: #0e6f99; }
 </style>
 </head>
 <body>
+<div class="wrap">
   <h1>${reportTitle}</h1>
-  <p class="generated">Generated by the <a href="https://lukasroeseler.github.io/pcc/">Publication Cost Calculator</a> on ${new Date().toLocaleString()}.</p>
+  <p class="generated">Generated by the <a href="https://lukasroeseler.github.io/pcc/">Publication Cost Calculator</a> on ${new Date().toLocaleString()}. This report embeds live charts and a live table (Chart.js + Altmetric, loaded from their public CDNs) so it stays interactive when opened later, even offline for everything except the Altmetric badges.</p>
   ${
     candidateOrcidId
       ? `<p class="candidate">${t("candidate_report_label")}: <strong>${escapeHtml(candidateName || "")}</strong>, <a href="https://orcid.org/${candidateOrcidId}" target="_blank" rel="noopener">ORCID ${candidateOrcidId}</a></p>`
@@ -2216,36 +2659,215 @@ document.getElementById("export-html-btn").addEventListener("click", () => {
   }
   ${retractedCount > 0 ? `<div class="retraction-banner">${escapeHtml(t("retraction_banner_text", { n: retractedCount, plural: retractedCount === 1 ? "" : "s" }))}</div>` : ""}
   <div class="stats">
-    <div class="stat"><b>${sym}${formatNum(totalCost, 2)}</b><span>${t("stat_total")}</span></div>
-    <div class="stat"><b>${sym}${formatNum(avgAll, 2)}</b><span>${t("stat_avg_all")}</span></div>
-    <div class="stat"><b>${sym}${formatNum(avgPaid, 2)}</b><span>${t("stat_avg_paid")}</span></div>
-    <div class="stat"><b>${formatNum(determined.length, 0)} / ${formatNum(finished.length, 0)}</b><span>${t("stat_determined")}</span></div>
+    <div class="stat"><b>${sym}${formatNum(stats.totalCost, 2)}</b><span>${t("stat_total")}</span></div>
+    <div class="stat"><b>${sym}${formatNum(stats.avgAll, 2)}</b><span>${t("stat_avg_all")}</span></div>
+    <div class="stat"><b>${sym}${formatNum(stats.avgPaid, 2)}</b><span>${t("stat_avg_paid")}</span></div>
+    <div class="stat"><b>${formatNum(stats.determinedCount, 0)} / ${formatNum(stats.finishedCount, 0)}</b><span>${t("stat_determined")}</span></div>
+    <div class="stat"><b>${stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "–"}</b><span>${t("stat_cost_per_citation")}</span></div>
+    <div class="stat"><b>${stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–"}</b><span>${t("stat_cost_per_year")}</span></div>
   </div>
-  ${histImg ? `<h2>${t("chart_title_hist")}</h2><img class="chart" src="${histImg}" alt="${t("chart_title_hist")}">` : ""}
-  ${actualScatterImg ? `<h2>${t("chart_title_scatter_actual")}</h2><img class="chart" src="${actualScatterImg}" alt="${t("chart_title_scatter_actual")}">` : ""}
-  ${expectedScatterImg ? `<h2>${t("chart_title_scatter_expected")}</h2><img class="chart" src="${expectedScatterImg}" alt="${t("chart_title_scatter_expected")}">` : ""}
-  ${oaImg ? `<h2>${t("chart_title_oa")}</h2><img class="chart" src="${oaImg}" alt="${t("chart_title_oa")}">` : ""}
-  ${oaTimeImg ? `<h2>${t("chart_title_oa_time")}</h2><img class="chart" src="${oaTimeImg}" alt="${t("chart_title_oa_time")}">` : ""}
-  ${pdfImg ? `<h2>${t("chart_title_pdf")}</h2><img class="chart" src="${pdfImg}" alt="${t("chart_title_pdf")}">` : ""}
-  ${costByOaImg ? `<h2>${t("chart_title_cost_by_oa")}</h2><img class="chart" src="${costByOaImg}" alt="${t("chart_title_cost_by_oa")}">` : ""}
-  ${citationsByTierImg ? `<h2>${t("chart_title_citations_by_tier")}</h2><img class="chart" src="${citationsByTierImg}" alt="${t("chart_title_citations_by_tier")}">` : ""}
-  ${costByYearImg ? `<h2>${t("chart_title_cost_by_year")}</h2><img class="chart" src="${costByYearImg}" alt="${t("chart_title_cost_by_year")}">` : ""}
+  ${firstAuthorOnly ? `<p class="first-author-note">${escapeHtml(t(filterActive() ? "first_author_active_note" : "first_author_missing_orcid"))}</p>` : ""}
+
+  <h2>${t("chart_title_hist")}</h2>
+  <div class="chart-container"><canvas id="cost-histogram" role="img" aria-label="${t("chart_title_hist")}"></canvas></div>
+  <p class="chart-caption" id="chart-caption"></p>
+
+  <h2>${t("chart_title_scatter_actual")}</h2>
+  <div class="chart-container"><canvas id="cost-actual-scatter" role="img" aria-label="${t("chart_title_scatter_actual")}"></canvas></div>
+  <p class="chart-caption">${t("chart_caption_scatter_actual")}</p>
+
+  <h2>${t("chart_title_scatter_expected")}</h2>
+  <div class="chart-container"><canvas id="cost-expected-scatter" role="img" aria-label="${t("chart_title_scatter_expected")}"></canvas></div>
+  <p class="chart-caption">${t("chart_caption_scatter_expected")}</p>
+
+  <h2>${t("chart_title_oa")}</h2>
+  <div class="chart-container chart-container-oa"><canvas id="oa-stacked-bar" role="img" aria-label="${t("chart_title_oa")}"></canvas></div>
+
+  <h2>${t("chart_title_oa_time")}</h2>
+  <div class="chart-container"><canvas id="oa-time-bar" role="img" aria-label="${t("chart_title_oa_time")}"></canvas></div>
+
+  <h2>${t("chart_title_pdf")}</h2>
+  <div class="chart-container chart-container-oa"><canvas id="pdf-stacked-bar" role="img" aria-label="${t("chart_title_pdf")}"></canvas></div>
+  <p class="chart-caption" id="pdf-caption"></p>
+
+  <h2>${t("chart_title_cost_by_oa")}</h2>
+  <div class="chart-container chart-container-oa"><canvas id="cost-by-oa-bar" role="img" aria-label="${t("chart_title_cost_by_oa")}"></canvas></div>
+  <p class="chart-caption">${t("chart_caption_cost_by_oa")}</p>
+
+  <h2>${t("chart_title_citations_by_tier")}</h2>
+  <div class="chart-container chart-container-violin"><canvas id="citations-by-tier-bar" role="img" aria-label="${t("chart_title_citations_by_tier")}"></canvas></div>
+  <p class="chart-caption">${t("chart_caption_citations_by_tier")}</p>
+  <p class="chart-caption" id="citations-by-tier-note"></p>
+
+  <h2>${t("chart_title_cost_by_year")}</h2>
+  <div class="chart-container"><canvas id="cost-by-year-bar" role="img" aria-label="${t("chart_title_cost_by_year")}"></canvas></div>
+  <p class="chart-caption">${t("chart_caption_cost_by_year")}</p>
+
   <h2>${t("results_title")}</h2>
-  <table>
+  <div class="table-search-row">
+    <input type="search" id="table-search" placeholder="${t("table_search_placeholder")}">
+    <span id="table-search-count"></span>
+  </div>
+  <table id="results-table">
     <thead>
       <tr>
-        <th>#</th><th>${t("th_ref")}</th><th>DOI</th><th>${t("th_oa")}</th><th>${t("th_cost")} (${currentCurrency})</th>
-        <th>${t("th_source")}</th><th>${t("th_citations")}</th><th>${t("th_meancited")}</th><th>${t("th_altmetric")}</th>
-        <th>${t("th_pdf")}</th><th>${t("th_year")}</th><th>Journal / field</th><th>${t("th_notes")}</th>
+        <th>#</th><th class="sortable" data-sort-key="title">${t("th_ref")}</th><th>DOI</th><th class="sortable" data-sort-key="oa">${t("th_oa")}</th>
+        <th class="sortable" data-sort-key="cost">${t("th_cost")} (${currentCurrency})</th><th>${t("th_source")}</th>
+        <th class="sortable" data-sort-key="citations">${t("th_citations")}</th><th class="sortable" data-sort-key="meancited">${t("th_meancited")}</th>
+        <th>${t("th_altmetric")}</th><th class="sortable" data-sort-key="pdf">${t("th_pdf")}</th><th>${t("th_year")}</th><th>Journal / field</th><th>${t("th_notes")}</th>
       </tr>
     </thead>
-    <tbody>${rowsHtml}</tbody>
+    <tbody id="results-tbody"></tbody>
   </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script>
+<script>${bootScript}</script>
 </body>
 </html>`;
 
   downloadFile(html, "publication-cost-report.html", "text/html;charset=utf-8");
 });
+
+// ================================================================
+// experimental: compare two ORCID iDs side by side
+// ================================================================
+// Runs the same fetch + resolve pipeline as the main tool (getOrcidWorks,
+// processItem, asyncPool), but against a private local array instead of the
+// shared currentResults/rowElements state, so it can run independently of
+// (and concurrently with) whatever the main tool is doing.
+async function computeKpisForOrcid(orcidId, onProgress) {
+  const email = getEmail();
+  const [works, personName] = await Promise.all([getOrcidWorks(orcidId), getOrcidPersonName(orcidId)]);
+  const results = works.map((it) => ({ ...it, status: "pending", doi: it.doi || null }));
+  let done = 0;
+  onProgress(done, results.length);
+  await asyncPool(4, results.map((_, i) => i), async (i) => {
+    await processItem(
+      results[i],
+      i,
+      email,
+      (idx, patch) => {
+        results[idx] = { ...results[idx], ...patch };
+      }
+    );
+    done++;
+    onProgress(done, results.length);
+  });
+  return { orcidId, personName, results };
+}
+
+const compareToggle = document.getElementById("compare-toggle");
+compareToggle.addEventListener("click", () => {
+  const expanded = compareToggle.getAttribute("aria-expanded") === "true";
+  compareToggle.setAttribute("aria-expanded", String(!expanded));
+  document.getElementById("compare-panel").classList.toggle("hidden", expanded);
+});
+
+function renderCompareColumn(kpi, statusText) {
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  const name = kpi ? kpi.personName || kpi.orcidId : "";
+  const sub = kpi ? `ORCID ${kpi.orcidId}` : "";
+  if (!kpi) {
+    return `<div class="compare-column"><p class="compare-column-sub">${escapeHtml(statusText || "")}</p></div>`;
+  }
+  const finished = kpi.results.filter((r) => r.status === "done");
+  const stats = computeKpiStats(finished);
+  const rows = [
+    [t("compare_stat_works"), formatNum(kpi.results.length, 0)],
+    [t("compare_stat_total"), sym + formatNum(stats.totalCost, 2)],
+    [t("compare_stat_avg_all"), sym + formatNum(stats.avgAll, 2)],
+    [t("compare_stat_avg_paid"), sym + formatNum(stats.avgPaid, 2)],
+    [t("compare_stat_determined"), `${formatNum(stats.determinedCount, 0)} / ${formatNum(stats.finishedCount, 0)}`],
+    [t("compare_stat_cost_per_citation"), stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "–"],
+    [t("compare_stat_cost_per_year"), stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–"],
+  ];
+  return `<div class="compare-column">
+    <h4>${escapeHtml(name)}</h4>
+    <p class="compare-column-sub">${escapeHtml(sub)}${statusText ? " · " + escapeHtml(statusText) : ""}</p>
+    ${rows.map(([label, value]) => `<div class="compare-stat"><span class="compare-stat-label">${label}</span><span class="compare-stat-value">${value}</span></div>`).join("")}
+  </div>`;
+}
+
+document.getElementById("compare-run-btn").addEventListener("click", async () => {
+  const errorEl = document.getElementById("compare-error");
+  const columnsEl = document.getElementById("compare-columns");
+  const btn = document.getElementById("compare-run-btn");
+  const aRaw = document.getElementById("compare-orcid-a").value;
+  const bRaw = document.getElementById("compare-orcid-b").value;
+  const a = normalizeOrcidInput(aRaw);
+  const b = normalizeOrcidInput(bRaw);
+
+  if (!isValidOrcid(a) || !isValidOrcid(b)) {
+    errorEl.textContent = t("compare_alert_invalid");
+    errorEl.style.display = "block";
+    return;
+  }
+  errorEl.style.display = "none";
+
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = t("compare_run_btn_busy");
+  columnsEl.classList.remove("hidden");
+  columnsEl.innerHTML = renderCompareColumn(null, t("compare_status_fetching")) + renderCompareColumn(null, t("compare_status_fetching"));
+
+  const progress = [
+    { done: 0, total: 0 },
+    { done: 0, total: 0 },
+  ];
+  const kpis = [null, null];
+  const errors = [null, null];
+  const redraw = () => {
+    columnsEl.innerHTML = kpis
+      .map((kpi, i) => {
+        if (kpi) return renderCompareColumn(kpi);
+        if (errors[i]) return renderCompareColumn(null, t("compare_status_failed", { error: errors[i] }));
+        const statusText = progress[i].total ? t("compare_status_progress", { done: progress[i].done, total: progress[i].total }) : t("compare_status_fetching");
+        return renderCompareColumn(null, statusText);
+      })
+      .join("");
+  };
+
+  await Promise.all(
+    [a, b].map((orcid, i) =>
+      computeKpisForOrcid(orcid, (done, total) => {
+        progress[i] = { done, total };
+        redraw();
+      })
+        .then((kpi) => {
+          kpis[i] = kpi;
+          redraw();
+        })
+        .catch((e) => {
+          errors[i] = e.message;
+          redraw();
+        })
+    )
+  );
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+});
+
+// ---------- WIP disclaimer modal ----------
+const WIP_DISMISS_KEY = "pcc_wip_notice_dismissed";
+function closeWipModal() {
+  document.getElementById("wip-modal-backdrop").classList.add("hidden");
+  if (document.getElementById("wip-modal-dont-show").checked) {
+    localStorage.setItem(WIP_DISMISS_KEY, "1");
+  }
+}
+document.getElementById("wip-modal-close").addEventListener("click", closeWipModal);
+document.getElementById("wip-modal-backdrop").addEventListener("click", (e) => {
+  if (e.target.id === "wip-modal-backdrop") closeWipModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !document.getElementById("wip-modal-backdrop").classList.contains("hidden")) closeWipModal();
+});
+if (!localStorage.getItem(WIP_DISMISS_KEY)) {
+  document.getElementById("wip-modal-backdrop").classList.remove("hidden");
+}
 
 // ---------- init ----------
 applyTranslations();

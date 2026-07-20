@@ -14,6 +14,18 @@
 </head>
 <body>
 
+<div class="wip-modal-backdrop hidden" id="wip-modal-backdrop">
+  <div class="wip-modal" role="dialog" aria-modal="true" aria-labelledby="wip-modal-title">
+    <h2 id="wip-modal-title" data-i18n="wip_modal_title">Work in progress</h2>
+    <p data-i18n-html="wip_modal_body"></p>
+    <label class="wip-modal-dismiss-row">
+      <input type="checkbox" id="wip-modal-dont-show">
+      <span data-i18n="wip_modal_dont_show">Don't show this again on this device</span>
+    </label>
+    <button type="button" class="btn-primary" id="wip-modal-close" data-i18n="wip_modal_close">Got it</button>
+  </div>
+</div>
+
 <div class="settings-bar">
   <div class="wrap settings-bar-row">
     <img src="mucos-logo.png" alt="MüCOS: Münster Center for Open Science" class="mucos-logo">
@@ -136,6 +148,32 @@
     <dl class="glossary-body hidden" id="glossary-body"></dl>
   </section>
 
+  <section class="card" id="compare-section">
+    <button type="button" class="glossary-toggle" id="compare-toggle" aria-expanded="false" aria-controls="compare-panel">
+      <span>
+        <span data-i18n="compare_toggle_label">Compare two ORCID iDs</span>
+        <span class="badge-experimental" data-i18n="experimental_badge">Experimental</span>
+      </span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+    <div class="hidden" id="compare-panel">
+      <p class="hint" data-i18n="compare_intro">Fetches and prices each ORCID iD's publications independently, then shows the resulting cost KPIs side by side. This is a new, lightly tested feature: treat the numbers as a rough comparison, not a final report.</p>
+      <div class="compare-inputs">
+        <div class="field-row">
+          <label for="compare-orcid-a" data-i18n="compare_orcid_a_label">First ORCID iD</label>
+          <input type="text" id="compare-orcid-a" placeholder="0000-0002-1825-0097" autocomplete="off">
+        </div>
+        <div class="field-row">
+          <label for="compare-orcid-b" data-i18n="compare_orcid_b_label">Second ORCID iD</label>
+          <input type="text" id="compare-orcid-b" placeholder="0000-0001-5109-3700" autocomplete="off">
+        </div>
+      </div>
+      <button type="button" class="btn-primary" id="compare-run-btn" data-i18n="compare_run_btn">Compare</button>
+      <p class="hint" id="compare-error" style="display:none;"></p>
+      <div class="compare-columns hidden" id="compare-columns"></div>
+    </div>
+  </section>
+
   <section class="card hidden" id="review-section">
     <h2 data-i18n="review_title">Review &amp; confirm</h2>
     <div id="review-text-mode">
@@ -195,6 +233,17 @@
         <span class="stat-label" data-i18n="stat_cost_per_year">Cost per year since first publication</span>
       </div>
     </div>
+
+    <div class="results-first-author">
+      <div class="field-row checkbox-row">
+        <input type="checkbox" id="results-first-author-toggle">
+        <label for="results-first-author-toggle" class="checkbox-label" data-i18n="first_author_toggle_label">Count first-authorship papers only towards costs</label>
+      </div>
+      <div class="field-row">
+        <label for="results-user-orcid-input" data-i18n="your_orcid_label">Your ORCID iD (optional, for first-author filter)</label>
+        <input type="text" id="results-user-orcid-input" placeholder="0000-0002-1825-0097" autocomplete="off">
+      </div>
+    </div>
     <p class="hint" id="first-author-note" style="display:none;"></p>
 
     <h3 class="chart-title" data-i18n="chart_title_hist">Cost distribution</h3>
@@ -238,10 +287,11 @@
     <p class="hint chart-caption" data-i18n="chart_caption_cost_by_oa">Which open access types account for the money actually spent, rather than just the number of articles.</p>
 
     <h3 class="chart-title" data-i18n="chart_title_citations_by_tier">Citations by cost tier</h3>
-    <div class="chart-container">
-      <canvas id="citations-by-tier-bar" role="img" aria-label="Bar chart of average citations within each APC cost tier"></canvas>
+    <div class="chart-container chart-container-violin">
+      <canvas id="citations-by-tier-bar" role="img" aria-label="Violin plot of citation distribution within each APC cost tier"></canvas>
     </div>
-    <p class="hint chart-caption" data-i18n="chart_caption_citations_by_tier">Average number of citations for articles in each cost tier, using the same tiers as the cost distribution above.</p>
+    <p class="hint chart-caption" data-i18n="chart_caption_citations_by_tier">Each violin shows the full citation distribution for articles in that cost tier (not just an average), with a solid dash marking the median.</p>
+    <p class="hint chart-caption" id="citations-by-tier-note"></p>
 
     <h3 class="chart-title" data-i18n="chart_title_cost_by_year">Cost by publication year</h3>
     <div class="chart-container">
@@ -252,6 +302,13 @@
     <div class="table-actions">
       <button id="export-csv-btn" class="btn-secondary" data-i18n="export_csv_btn">Export CSV</button>
       <button id="export-html-btn" class="btn-secondary" data-i18n="export_html_btn">Export HTML report</button>
+    </div>
+
+    <div class="table-search-row">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <label for="table-search" class="visually-hidden" data-i18n="table_search_label">Search results table</label>
+      <input type="search" id="table-search" data-i18n-placeholder="table_search_placeholder" placeholder="Search title, journal, DOI, notes…" autocomplete="off">
+      <span class="hint-inline" id="table-search-count"></span>
     </div>
 
     <div class="table-scroll">
