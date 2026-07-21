@@ -124,6 +124,13 @@ const TRANSLATIONS = {
   compare_stat_determined: { en: "Determined costs", de: "Bestimmte Kosten" },
   compare_stat_cost_per_citation: { en: "Cost per citation", de: "Kosten pro Zitation" },
   compare_stat_cost_per_year: { en: "Cost per year", de: "Kosten pro Jahr" },
+  compare_stat_oa_share: { en: "Open access share", de: "Open-Access-Anteil" },
+  compare_first_author_toggle_label: { en: "Count first-authorship works only", de: "Nur Erstautorenschaften einrechnen" },
+  compare_first_author_note: {
+    en: "Showing first-authored works only, matched against each person's own ORCID iD.",
+    de: "Es werden nur Erstautorenschaften gezeigt, abgeglichen mit der jeweils eigenen ORCID-iD.",
+  },
+  compare_example_btn: { en: "Try example ORCID iDs", de: "Beispiel-ORCID-iDs testen" },
   compare_stat_works: { en: "Works found", de: "Gefundene Werke" },
   compare_chart_cost_title: { en: "Cost by year", de: "Kosten nach Jahr" },
   compare_chart_oa_title: { en: "Open access type by year", de: "Open-Access-Typ nach Jahr" },
@@ -246,6 +253,10 @@ const TRANSLATIONS = {
   th_meancited: { en: "Journal mean citedness (2yr)", de: "Ø Zitierhäufigkeit der Zeitschrift (2 J.)" },
   th_altmetric: { en: "Altmetric", de: "Altmetric" },
   th_notes: { en: "Notes", de: "Anmerkungen" },
+  table_source_note: {
+    en: 'Where these costs come from: OpenAlex is queried for each article, which in turn sources the figures below from OpenAPC (actual APC payments reported by libraries and institutions), publisher-supplied list prices, and DOAJ (for the free-to-publish check). See the "Price source" column for which of these applies to each row, and the glossary above for what each label means.',
+    de: 'Woher diese Kosten stammen: Für jeden Artikel wird OpenAlex abgefragt, das die unten angezeigten Werte wiederum aus OpenAPC (tatsächlich gezahlte APCs, gemeldet von Bibliotheken und Institutionen), von Verlagen angegebenen Listenpreisen und DOAJ (für die Prüfung auf kostenfreies Publizieren) bezieht. Welche dieser Quellen für welche Zeile gilt, zeigt die Spalte „Preisquelle"; was die einzelnen Bezeichnungen bedeuten, steht im Glossar oben.',
+  },
   th_hide: { en: "Hide", de: "Ausblenden" },
   th_pdf: { en: "Free PDF", de: "Freie PDF" },
   th_year: { en: "Year", de: "Jahr" },
@@ -584,10 +595,14 @@ ORCID_TOGGLE_IDS.forEach((id) => {
   document.getElementById(id).addEventListener("change", (e) => setFirstAuthorOnly(e.target.checked, id));
 });
 
-function authorPositionFor(r) {
-  if (!r.authorships || !userOrcidNorm) return null;
-  const match = r.authorships.find((a) => a.author && a.author.orcid && normalizeOrcidInput(a.author.orcid) === userOrcidNorm);
+function matchAuthorPosition(authorships, orcidNorm) {
+  if (!authorships || !orcidNorm) return null;
+  const match = authorships.find((a) => a.author && a.author.orcid && normalizeOrcidInput(a.author.orcid) === orcidNorm);
   return match ? match.author_position : null;
+}
+
+function authorPositionFor(r) {
+  return matchAuthorPosition(r.authorships, userOrcidNorm);
 }
 
 function filterActive() {
@@ -1608,6 +1623,11 @@ function computeKpiStats(finished) {
   const yearsSpan = earliestYear != null ? Math.max(1, new Date().getFullYear() - earliestYear + 1) : null;
   const costPerYear = yearsSpan != null ? totalCost / yearsSpan : null;
 
+  // "Open" here means any OA route at all (diamond/preprint/gold/hybrid/green/bronze),
+  // matching the Bibliometric Dashboard's convention -- closed/unknown/undetermined don't count.
+  const openCount = finished.filter((r) => r.oaStatus && r.oaStatus !== "closed" && r.oaStatus !== "unknown").length;
+  const openAccessShare = finished.length ? openCount / finished.length : null;
+
   return {
     finishedCount: finished.length,
     determinedCount: determined.length,
@@ -1617,6 +1637,7 @@ function computeKpiStats(finished) {
     avgPaid,
     costPerCitation,
     costPerYear,
+    openAccessShare,
   };
 }
 
@@ -2874,6 +2895,30 @@ compareToggle.addEventListener("click", () => {
   document.getElementById("compare-panel").classList.toggle("hidden", expanded);
 });
 
+// Each side of the comparison already has a known ORCID iD (it's the very thing being
+// compared), so -- unlike the main tool -- no separate "your ORCID" field is needed:
+// first-authorship is checked directly against each person's own entered ORCID.
+let compareFirstAuthorOnly = false;
+let lastCompareKpis = [null, null];
+
+function finishedForCompare(kpi) {
+  return kpi.results.filter((r) => r.status === "done" && (!compareFirstAuthorOnly || matchAuthorPosition(r.authorships, kpi.orcidId) === "first"));
+}
+
+document.getElementById("compare-example-btn").addEventListener("click", () => {
+  document.getElementById("compare-orcid-a").value = "0000-0002-1825-0097";
+  document.getElementById("compare-orcid-b").value = "0000-0001-5109-3700";
+  document.getElementById("compare-run-btn").click();
+});
+
+document.getElementById("compare-first-author-toggle").addEventListener("change", (e) => {
+  compareFirstAuthorOnly = e.target.checked;
+  if (lastCompareKpis[0] && lastCompareKpis[1]) {
+    document.getElementById("compare-columns").innerHTML = lastCompareKpis.map((kpi) => renderCompareColumn(kpi)).join("");
+    renderCompareCharts(lastCompareKpis[0], lastCompareKpis[1]);
+  }
+});
+
 // ---------- compare charts: cost and OA type over the years, side by side ----------
 let compareCostChart = null;
 let compareOaChartA = null;
@@ -2962,8 +3007,8 @@ function renderCompareOaYearChart(canvasId, finished, years) {
 }
 
 function renderCompareCharts(kpiA, kpiB) {
-  const finishedA = kpiA.results.filter((r) => r.status === "done");
-  const finishedB = kpiB.results.filter((r) => r.status === "done");
+  const finishedA = finishedForCompare(kpiA);
+  const finishedB = finishedForCompare(kpiB);
   const years = yearRange([...finishedA, ...finishedB].map((r) => r.publicationYear).filter((y) => y != null));
 
   renderCompareCostByYearChart(kpiA, kpiB, finishedA, finishedB, years);
@@ -2991,7 +3036,7 @@ function renderCompareColumn(kpi, statusText) {
   if (!kpi) {
     return `<div class="compare-column"><p class="compare-column-sub">${escapeHtml(statusText || "")}</p></div>`;
   }
-  const finished = kpi.results.filter((r) => r.status === "done");
+  const finished = finishedForCompare(kpi);
   const stats = computeKpiStats(finished);
   const rows = [
     [t("compare_stat_works"), formatNum(kpi.results.length, 0)],
@@ -2999,12 +3044,15 @@ function renderCompareColumn(kpi, statusText) {
     [t("compare_stat_avg_all"), sym + formatNum(stats.avgAll, 2)],
     [t("compare_stat_avg_paid"), sym + formatNum(stats.avgPaid, 2)],
     [t("compare_stat_determined"), `${formatNum(stats.determinedCount, 0)} / ${formatNum(stats.finishedCount, 0)}`],
+    [t("compare_stat_oa_share"), stats.openAccessShare != null ? formatNum(stats.openAccessShare * 100, 0) + "%" : "–"],
     [t("compare_stat_cost_per_citation"), stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "–"],
     [t("compare_stat_cost_per_year"), stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–"],
   ];
+  const firstAuthorNote = compareFirstAuthorOnly ? `<p class="compare-column-sub">${escapeHtml(t("compare_first_author_note"))}</p>` : "";
   return `<div class="compare-column">
     <h4>${escapeHtml(name)}</h4>
     <p class="compare-column-sub">${escapeHtml(sub)}${statusText ? " · " + escapeHtml(statusText) : ""}</p>
+    ${firstAuthorNote}
     ${rows.map(([label, value]) => `<div class="compare-stat"><span class="compare-stat-label">${label}</span><span class="compare-stat-value">${value}</span></div>`).join("")}
   </div>`;
 }
@@ -3065,6 +3113,7 @@ document.getElementById("compare-run-btn").addEventListener("click", async () =>
     )
   );
 
+  lastCompareKpis = kpis;
   if (kpis[0] && kpis[1]) {
     renderCompareCharts(kpis[0], kpis[1]);
   } else {

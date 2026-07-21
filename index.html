@@ -117,7 +117,7 @@
     <div class="welcome-advanced hidden" id="advanced-panel">
       <div class="field-row">
         <label for="user-orcid-input" data-i18n="your_orcid_label">Your ORCID iD (optional, for first-author filter)</label>
-        <input type="text" id="user-orcid-input" placeholder="0000-0002-1825-0097" autocomplete="off">
+        <input type="text" id="user-orcid-input" placeholder="0000-0000-0000-0000" autocomplete="off">
       </div>
       <div class="field-row checkbox-row">
         <input type="checkbox" id="first-author-toggle">
@@ -168,6 +168,11 @@
           <label for="compare-orcid-b" data-i18n="compare_orcid_b_label">Second ORCID iD</label>
           <input type="text" id="compare-orcid-b" placeholder="0000-0001-5109-3700" autocomplete="off">
         </div>
+      </div>
+      <button type="button" class="btn-secondary" id="compare-example-btn" data-i18n="compare_example_btn" style="margin-bottom:12px">Try example ORCID iDs</button>
+      <div class="field-row checkbox-row" style="margin-top:12px">
+        <input type="checkbox" id="compare-first-author-toggle">
+        <label for="compare-first-author-toggle" class="checkbox-label" data-i18n="compare_first_author_toggle_label">Count first-authorship works only</label>
       </div>
       <button type="button" class="btn-primary" id="compare-run-btn" data-i18n="compare_run_btn">Compare</button>
       <p class="hint" id="compare-error" style="display:none;"></p>
@@ -257,7 +262,7 @@
       </div>
       <div class="field-row">
         <label for="results-user-orcid-input" data-i18n="your_orcid_label">Your ORCID iD (optional, for first-author filter)</label>
-        <input type="text" id="results-user-orcid-input" placeholder="0000-0002-1825-0097" autocomplete="off">
+        <input type="text" id="results-user-orcid-input" placeholder="0000-0000-0000-0000" autocomplete="off">
       </div>
     </div>
     <p class="hint" id="first-author-note" style="display:none;"></p>
@@ -314,6 +319,8 @@
       <canvas id="cost-by-year-bar" role="img" aria-label="Bar chart of total APC cost by publication year"></canvas>
     </div>
     <p class="hint chart-caption" data-i18n="chart_caption_cost_by_year">Total spending on articles published in each year.</p>
+
+    <p class="hint" data-i18n="table_source_note">Where these costs come from: OpenAlex is queried for each article, which in turn sources the figures below from OpenAPC (actual APC payments reported by libraries and institutions), publisher-supplied list prices, and DOAJ (for the free-to-publish check). See the "Price source" column for which of these applies to each row, and the glossary above for what each label means.</p>
 
     <div class="table-actions">
       <button id="export-csv-btn" class="btn-secondary" data-i18n="export_csv_btn">Export CSV</button>
