@@ -125,6 +125,8 @@ const TRANSLATIONS = {
   compare_stat_cost_per_citation: { en: "Cost per citation", de: "Kosten pro Zitation" },
   compare_stat_cost_per_year: { en: "Cost per year", de: "Kosten pro Jahr" },
   compare_stat_works: { en: "Works found", de: "Gefundene Werke" },
+  compare_chart_cost_title: { en: "Cost by year", de: "Kosten nach Jahr" },
+  compare_chart_oa_title: { en: "Open access type by year", de: "Open-Access-Typ nach Jahr" },
   currency_label: { en: "Currency", de: "Währung" },
   hero_title: { en: "Publication Cost Calculator", de: "Publication Cost Calculator" },
   hero_subtitle: {
@@ -2872,6 +2874,116 @@ compareToggle.addEventListener("click", () => {
   document.getElementById("compare-panel").classList.toggle("hidden", expanded);
 });
 
+// ---------- compare charts: cost and OA type over the years, side by side ----------
+let compareCostChart = null;
+let compareOaChartA = null;
+let compareOaChartB = null;
+
+function renderCompareCostByYearChart(kpiA, kpiB, finishedA, finishedB, years) {
+  const canvas = document.getElementById("compare-cost-chart");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  function sumsFor(finished) {
+    const byYear = {};
+    finished.forEach((r) => {
+      if (r.cost == null || r.publicationYear == null) return;
+      byYear[r.publicationYear] = (byYear[r.publicationYear] || 0) + convertCost(r.cost);
+    });
+    return years.map((y) => Math.round((byYear[y] || 0) * 100) / 100);
+  }
+
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  if (compareCostChart) {
+    compareCostChart.destroy();
+    compareCostChart = null;
+  }
+  compareCostChart = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels: years,
+      datasets: [
+        { label: kpiA.personName || kpiA.orcidId, data: sumsFor(finishedA), borderColor: accentColor(), backgroundColor: accentColor(), fill: false, tension: 0.25, borderWidth: 2, pointRadius: 2 },
+        { label: kpiB.personName || kpiB.orcidId, data: sumsFor(finishedB), borderColor: "#d1652c", backgroundColor: "#d1652c", fill: false, tension: 0.25, borderWidth: 2, pointRadius: 2 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "bottom", labels: { color: tickColor(), font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+        tooltip: {
+          backgroundColor: "#0a4f6e",
+          titleColor: "#fff",
+          bodyColor: "#fff",
+          padding: 10,
+          callbacks: { label: (item) => `${item.dataset.label}: ${sym}${formatNum(item.parsed.y, 2)}` },
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: tickColor(), font: { size: 11 } } },
+        y: {
+          beginAtZero: true,
+          ticks: { color: tickColor() },
+          grid: { color: gridColor() },
+          title: { display: true, text: `${currentLang === "de" ? "Kosten" : "Cost"} (${currentCurrency})`, color: tickColor(), font: { size: 11 } },
+        },
+      },
+    },
+  });
+}
+
+function renderCompareOaYearChart(canvasId, finished, years) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas || typeof Chart === "undefined") return null;
+  const withYear = finished.filter((r) => r.publicationYear != null);
+  const counts = OA_TYPES.map(() => years.map(() => 0));
+  withYear.forEach((r) => {
+    const yearIdx = years.indexOf(r.publicationYear);
+    const oaIdx = OA_TYPES.findIndex((oa) => oa.key === (r.oaStatus || "unknown"));
+    if (yearIdx !== -1 && oaIdx !== -1) counts[oaIdx][yearIdx]++;
+  });
+  const datasets = OA_TYPES.map((oa, i) => ({ label: oaLabel(oa.key), data: counts[i], backgroundColor: oa.color }));
+  return new Chart(canvas.getContext("2d"), {
+    type: "bar",
+    data: { labels: years, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, ticks: { color: tickColor(), font: { size: 10 } }, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0, color: tickColor() }, grid: { color: gridColor() } },
+      },
+      plugins: {
+        legend: { position: "bottom", labels: { color: tickColor(), font: { size: 9 }, boxWidth: 8, boxHeight: 8 } },
+        tooltip: { backgroundColor: "#0a4f6e", titleColor: "#fff", bodyColor: "#fff", padding: 10 },
+      },
+    },
+  });
+}
+
+function renderCompareCharts(kpiA, kpiB) {
+  const finishedA = kpiA.results.filter((r) => r.status === "done");
+  const finishedB = kpiB.results.filter((r) => r.status === "done");
+  const years = yearRange([...finishedA, ...finishedB].map((r) => r.publicationYear).filter((y) => y != null));
+
+  renderCompareCostByYearChart(kpiA, kpiB, finishedA, finishedB, years);
+
+  if (compareOaChartA) {
+    compareOaChartA.destroy();
+    compareOaChartA = null;
+  }
+  if (compareOaChartB) {
+    compareOaChartB.destroy();
+    compareOaChartB = null;
+  }
+  document.getElementById("compare-oa-label-a").textContent = kpiA.personName || kpiA.orcidId;
+  document.getElementById("compare-oa-label-b").textContent = kpiB.personName || kpiB.orcidId;
+  compareOaChartA = renderCompareOaYearChart("compare-oa-chart-a", finishedA, years);
+  compareOaChartB = renderCompareOaYearChart("compare-oa-chart-b", finishedB, years);
+
+  document.getElementById("compare-charts").classList.remove("hidden");
+}
+
 function renderCompareColumn(kpi, statusText) {
   const sym = CURRENCY_SYMBOLS[currentCurrency];
   const name = kpi ? kpi.personName || kpi.orcidId : "";
@@ -2952,6 +3064,12 @@ document.getElementById("compare-run-btn").addEventListener("click", async () =>
         })
     )
   );
+
+  if (kpis[0] && kpis[1]) {
+    renderCompareCharts(kpis[0], kpis[1]);
+  } else {
+    document.getElementById("compare-charts").classList.add("hidden");
+  }
 
   btn.disabled = false;
   btn.textContent = originalLabel;

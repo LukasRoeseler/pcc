@@ -172,6 +172,21 @@
       <button type="button" class="btn-primary" id="compare-run-btn" data-i18n="compare_run_btn">Compare</button>
       <p class="hint" id="compare-error" style="display:none;"></p>
       <div class="compare-columns hidden" id="compare-columns"></div>
+      <div class="hidden" id="compare-charts">
+        <h3 class="chart-title" data-i18n="compare_chart_cost_title">Cost by year</h3>
+        <div class="chart-container"><canvas id="compare-cost-chart" role="img" aria-label="Cost by publication year for both ORCID iDs"></canvas></div>
+        <h3 class="chart-title" data-i18n="compare_chart_oa_title">Open access type by year</h3>
+        <div class="compare-oa-charts">
+          <div>
+            <div class="compare-oa-chart-label" id="compare-oa-label-a"></div>
+            <div class="chart-container chart-container-oa-tall"><canvas id="compare-oa-chart-a" role="img" aria-label="Open access type by year, first ORCID iD"></canvas></div>
+          </div>
+          <div>
+            <div class="compare-oa-chart-label" id="compare-oa-label-b"></div>
+            <div class="chart-container chart-container-oa-tall"><canvas id="compare-oa-chart-b" role="img" aria-label="Open access type by year, second ORCID iD"></canvas></div>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 

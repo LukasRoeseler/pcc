@@ -684,8 +684,14 @@ tr.excluded-row .cell-cost { text-decoration: line-through; }
 .compare-column .compare-stat-label { color: var(--text-secondary); }
 .compare-column .compare-stat-value { font-weight: 700; color: var(--primary-dark); font-family: var(--font-display); white-space: nowrap; }
 
+#compare-charts { margin-top: 8px; }
+#compare-charts .chart-title:first-of-type { margin-top: 22px; }
+.compare-oa-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.compare-oa-chart-label { font-family: var(--font-display); font-weight: 700; font-size: 0.85rem; color: var(--slate); margin-bottom: 6px; overflow-wrap: anywhere; }
+.chart-container-oa-tall { height: 220px; }
+
 @media (max-width: 560px) {
-  .compare-inputs, .compare-columns { grid-template-columns: 1fr; }
+  .compare-inputs, .compare-columns, .compare-oa-charts { grid-template-columns: 1fr; }
 }
 .chart-container-violin { height: 320px; }
 
