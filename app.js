@@ -131,6 +131,10 @@ const TRANSLATIONS = {
     de: "Es werden nur Erstautorenschaften gezeigt, abgeglichen mit der jeweils eigenen ORCID-iD.",
   },
   compare_example_btn: { en: "Try example ORCID iDs", de: "Beispiel-ORCID-iDs testen" },
+  compare_error_note: {
+    en: "{n} of {total} works failed to load, likely from OpenAlex/Crossref rate limiting — the KPIs and charts above only reflect the rest. Try Compare again in a minute.",
+    de: "{n} von {total} Werken konnten nicht geladen werden, wahrscheinlich durch Ratenbegrenzung von OpenAlex/Crossref — die Kennzahlen und Diagramme oben beziehen sich nur auf die übrigen. Versuchen Sie es in einer Minute erneut mit Vergleichen.",
+  },
   compare_stat_works: { en: "Works found", de: "Gefundene Werke" },
   compare_chart_cost_title: { en: "Cost by year", de: "Kosten nach Jahr" },
   compare_chart_oa_title: { en: "Open access type by year", de: "Open-Access-Typ nach Jahr" },
@@ -624,6 +628,17 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// OpenAlex/Crossref's public rate limit is easy to hit when many rows are being
+// resolved at once (e.g. two people at once in the compare feature) -- a 429 is
+// usually transient, so retry a couple of times with backoff before giving up.
+async function fetchWithRetry(url, retries = 2, backoffMs = 700) {
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url);
+    if (res.status !== 429 || attempt >= retries) return res;
+    await sleep(backoffMs * (attempt + 1));
+  }
+}
+
 function normalizeDoi(raw) {
   if (!raw) return null;
   let d = String(raw).trim();
@@ -836,7 +851,7 @@ function bibEntryToItem(entry) {
 async function searchCrossref(query, email) {
   const params = new URLSearchParams({ "query.bibliographic": query, rows: "1" });
   if (email) params.set("mailto", email);
-  const res = await fetch(`https://api.crossref.org/works?${params.toString()}`);
+  const res = await fetchWithRetry(`https://api.crossref.org/works?${params.toString()}`);
   if (!res.ok) throw new Error("Crossref request failed (" + res.status + ")");
   const data = await res.json();
   const item = data.message && data.message.items && data.message.items[0];
@@ -853,7 +868,7 @@ async function getOpenAlexWork(doi, email) {
   if (email) params.set("mailto", email);
   const qs = params.toString();
   const url = `https://api.openalex.org/works/https://doi.org/${encodeURIComponent(doi)}${qs ? "?" + qs : ""}`;
-  const res = await fetch(url);
+  const res = await fetchWithRetry(url);
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("OpenAlex request failed (" + res.status + ")");
   return res.json();
@@ -870,7 +885,7 @@ async function getSourceInfo(sourceId, email) {
   const url = `https://api.openalex.org/sources/${encodeURIComponent(shortId)}${qs ? "?" + qs : ""}`;
   let info = { meanCitedness: null, hasApcPricing: null, issnL: null };
   try {
-    const res = await fetch(url);
+    const res = await fetchWithRetry(url);
     if (res.ok) {
       const data = await res.json();
       info = {
@@ -3049,10 +3064,13 @@ function renderCompareColumn(kpi, statusText) {
     [t("compare_stat_cost_per_year"), stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–"],
   ];
   const firstAuthorNote = compareFirstAuthorOnly ? `<p class="compare-column-sub">${escapeHtml(t("compare_first_author_note"))}</p>` : "";
+  const errorCount = kpi.results.filter((r) => r.status === "error").length;
+  const errorNote = errorCount > 0 ? `<p class="compare-column-sub compare-column-warning">${escapeHtml(t("compare_error_note", { n: errorCount, total: kpi.results.length }))}</p>` : "";
   return `<div class="compare-column">
     <h4>${escapeHtml(name)}</h4>
     <p class="compare-column-sub">${escapeHtml(sub)}${statusText ? " · " + escapeHtml(statusText) : ""}</p>
     ${firstAuthorNote}
+    ${errorNote}
     ${rows.map(([label, value]) => `<div class="compare-stat"><span class="compare-stat-label">${label}</span><span class="compare-stat-value">${value}</span></div>`).join("")}
   </div>`;
 }
