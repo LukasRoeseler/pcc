@@ -22,6 +22,69 @@ const exchangeRates = { EUR: 0.92, GBP: 0.78 }; // per 1 USD; overwritten by liv
 const CURRENCY_SYMBOLS = { USD: "$", EUR: "€", GBP: "£" };
 
 // ================================================================
+// theme (light/dark), matching the Bibliometric Dashboard and e-Journals
+// dashboard -- same "theme" localStorage key, so all three tools sharing the
+// lukasroeseler.github.io origin stay in sync automatically.
+// ================================================================
+// Plain function declarations (not arrow-const) so these can be bundled into
+// the HTML export via Function#toString() -- see EXPORT_BUNDLED_FNS below.
+function isDark() {
+  return document.documentElement.getAttribute("data-theme") === "dark";
+}
+function tickColor() {
+  return isDark() ? "#a7b4c0" : "#55606b";
+}
+function gridColor() {
+  return isDark() ? "rgba(255,255,255,.08)" : "#e6ebee";
+}
+function meanLineColor() {
+  return isDark() ? "#7fc4ea" : "#0a4f6e";
+}
+function medianLineColor() {
+  return isDark() ? "#caa0e6" : "#7a3fa0";
+}
+function accentColor() {
+  return isDark() ? "#00a0e0" : "#009fe3";
+}
+function violinMedianColor() {
+  return isDark() ? "#ffffff" : "#111111";
+}
+
+const THEME_ICON_SUN =
+  '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
+const THEME_ICON_MOON = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  const btn = document.getElementById("theme-btn");
+  if (btn) {
+    btn.innerHTML = t === "dark" ? THEME_ICON_SUN : THEME_ICON_MOON;
+    btn.setAttribute("aria-label", t === "dark" ? "Switch to light theme" : "Switch to dark theme");
+  }
+}
+
+function initTheme() {
+  const stored = localStorage.getItem("theme");
+  const t = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme(t);
+}
+
+function destroyAllCharts() {
+  [costChart, actualScatterChart, expectedScatterChart, oaChart, oaTimeChart, pdfChart, costByOaChart, citationsByTierChart, costByYearChart].forEach((c) => c && c.destroy());
+  costChart = actualScatterChart = expectedScatterChart = oaChart = oaTimeChart = pdfChart = costByOaChart = citationsByTierChart = costByYearChart = null;
+}
+
+document.getElementById("theme-btn").addEventListener("click", () => {
+  const next = isDark() ? "light" : "dark";
+  localStorage.setItem("theme", next);
+  applyTheme(next);
+  if (currentResults.length) {
+    destroyAllCharts();
+    updateSummary();
+  }
+});
+
+// ================================================================
 // i18n
 // ================================================================
 const TRANSLATIONS = {
@@ -330,6 +393,27 @@ const TRANSLATIONS = {
     en: "Whether a free, legally posted PDF of the article could be found via Unpaywall, regardless of OA type.",
     de: "Ob über Unpaywall eine frei zugängliche, legal veröffentlichte PDF-Datei des Artikels gefunden werden konnte, unabhängig vom OA-Typ.",
   },
+
+  glossary_apc_source: { en: "Source: OpenAlex (apc_paid via OpenAPC, or apc_list)", de: "Quelle: OpenAlex (apc_paid über OpenAPC, oder apc_list)" },
+  glossary_diamond_source: { en: "Source: OpenAlex, with a DOAJ fallback check by ISSN", de: "Quelle: OpenAlex, mit DOAJ-Ausweichprüfung über die ISSN" },
+  glossary_preprint_source: { en: "Source: OpenAlex work type", de: "Quelle: OpenAlex-Werktyp" },
+  glossary_gold_source: { en: "Source: OpenAlex open access status", de: "Quelle: OpenAlex-Open-Access-Status" },
+  glossary_hybrid_source: { en: "Source: OpenAlex open access status", de: "Quelle: OpenAlex-Open-Access-Status" },
+  glossary_green_source: { en: "Source: OpenAlex open access status", de: "Quelle: OpenAlex-Open-Access-Status" },
+  glossary_bronze_source: { en: "Source: OpenAlex open access status", de: "Quelle: OpenAlex-Open-Access-Status" },
+  glossary_closed_source: { en: "Source: OpenAlex open access status", de: "Quelle: OpenAlex-Open-Access-Status" },
+  glossary_mean_citedness_source: { en: "Source: OpenAlex (journal-level summary_stats)", de: "Quelle: OpenAlex (Zeitschriften-summary_stats)" },
+  glossary_altmetric_source: { en: "Source: Altmetric.com", de: "Quelle: Altmetric.com" },
+  glossary_cost_per_citation_source: {
+    en: "Source: calculated here from the cost and citation figures above, not fetched from anywhere",
+    de: "Quelle: hier aus den obigen Kosten- und Zitationszahlen berechnet, nicht von extern abgerufen",
+  },
+  glossary_first_author_source: {
+    en: "Source: your ORCID iD matched against OpenAlex author-position data",
+    de: "Quelle: Ihre ORCID-iD, abgeglichen mit den Autor:innen-Positionsangaben von OpenAlex",
+  },
+  glossary_hide_source: { en: "Source: a manual control in this tool, not fetched from anywhere", de: "Quelle: eine manuelle Steuerung dieses Tools, nicht von extern abgerufen" },
+  glossary_pdf_source: { en: "Source: Unpaywall", de: "Quelle: Unpaywall" },
 };
 
 const GLOSSARY_TERMS = [
@@ -370,7 +454,10 @@ function updateCostHeader() {
 
 function renderGlossary() {
   const dl = document.getElementById("glossary-body");
-  dl.innerHTML = GLOSSARY_TERMS.map((id) => `<dt>${escapeHtml(t(`glossary_${id}_term`))}</dt><dd>${escapeHtml(t(`glossary_${id}_def`))}</dd>`).join("");
+  dl.innerHTML = GLOSSARY_TERMS.map(
+    (id) =>
+      `<dt>${escapeHtml(t(`glossary_${id}_term`))}</dt><dd>${escapeHtml(t(`glossary_${id}_def`))}<br><span class="hint-inline glossary-source">${escapeHtml(t(`glossary_${id}_source`))}</span></dd>`
+  ).join("");
 }
 
 document.querySelectorAll("#lang-toggle .lang-btn").forEach((btn) => {
@@ -1621,6 +1708,18 @@ function citationTierLabels(thresholds) {
   return tierLabelsForThresholds(thresholds);
 }
 
+// A continuous run of years from the earliest one present through the current
+// year, so year-based charts show gaps (zero) rather than skipping years with
+// no data -- e.g. a lull in publications doesn't look like the axis just ends.
+function yearRange(years) {
+  if (!years.length) return [];
+  const start = Math.min(...years);
+  const end = new Date().getFullYear();
+  const range = [];
+  for (let y = start; y <= end; y++) range.push(y);
+  return range;
+}
+
 // ================================================================
 // generic violin-plot shape helpers (one violin per category, showing the full
 // value distribution rather than just an average, with the median marked)
@@ -1728,10 +1827,10 @@ function renderHistogram(costs) {
         nBins: counts.length,
         lines: [
           mean != null
-            ? { fractionalIndex: fractionalIndexForValue(mean, t1, t2), color: "#0a4f6e", label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${formatNum(mean, 0)}` }
+            ? { fractionalIndex: fractionalIndexForValue(mean, t1, t2), color: meanLineColor(), label: `${currentLang === "de" ? "Ø" : "Mean"}: ${sym}${formatNum(mean, 0)}` }
             : null,
           median != null
-            ? { fractionalIndex: fractionalIndexForValue(median, t1, t2), color: "#7a3fa0", label: `Median: ${sym}${formatNum(median, 0)}` }
+            ? { fractionalIndex: fractionalIndexForValue(median, t1, t2), color: medianLineColor(), label: `Median: ${sym}${formatNum(median, 0)}` }
             : null,
         ].filter(Boolean),
       }
@@ -1775,14 +1874,14 @@ function renderHistogram(costs) {
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: "#55606b", font: { size: 11 } },
-            title: { display: true, text: `APC cost (${currentCurrency})`, color: "#55606b", font: { size: 11 } },
+            ticks: { color: tickColor(), font: { size: 11 } },
+            title: { display: true, text: `APC cost (${currentCurrency})`, color: tickColor(), font: { size: 11 } },
           },
           y: {
             beginAtZero: true,
-            ticks: { precision: 0, color: "#55606b" },
-            grid: { color: "#e6ebee", drawTicks: false },
-            title: { display: true, text: "Number of articles", color: "#55606b", font: { size: 11 } },
+            ticks: { precision: 0, color: tickColor() },
+            grid: { color: gridColor(), drawTicks: false },
+            title: { display: true, text: "Number of articles", color: tickColor(), font: { size: 11 } },
           },
         },
       },
@@ -1824,15 +1923,15 @@ function buildScatterChart(existingChart, canvasId, points, color, xLabel, yLabe
         },
         scales: {
           x: {
-            title: { display: true, text: xLabel, color: "#55606b", font: { size: 11 } },
-            ticks: { color: "#55606b", font: { size: 11 } },
-            grid: { color: "#e6ebee" },
+            title: { display: true, text: xLabel, color: tickColor(), font: { size: 11 } },
+            ticks: { color: tickColor(), font: { size: 11 } },
+            grid: { color: gridColor() },
           },
           y: {
             beginAtZero: true,
-            title: { display: true, text: yLabel, color: "#55606b", font: { size: 11 } },
-            ticks: { color: "#55606b", font: { size: 11 } },
-            grid: { color: "#e6ebee" },
+            title: { display: true, text: yLabel, color: tickColor(), font: { size: 11 } },
+            ticks: { color: tickColor(), font: { size: 11 } },
+            grid: { color: gridColor() },
           },
         },
       },
@@ -1855,7 +1954,7 @@ function renderActualScatter(finished) {
     points.push({ x: convertCost(r.cost), y: r.citedByCount, title: r.matchedTitle || r.raw });
   });
   const yLabel = currentLang === "de" ? "Tatsächliche Zitationen" : "Actual citations";
-  actualScatterChart = buildScatterChart(actualScatterChart, "cost-actual-scatter", points, "#0e6f99", `APC cost (${currentCurrency})`, yLabel, true);
+  actualScatterChart = buildScatterChart(actualScatterChart, "cost-actual-scatter", points, accentColor(), `APC cost (${currentCurrency})`, yLabel, true);
 }
 
 let expectedScatterChart = null;
@@ -1943,7 +2042,7 @@ function renderOaChart(finished) {
           y: { stacked: true, display: false },
         },
         plugins: {
-          legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          legend: { position: "bottom", labels: { color: tickColor(), font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
           tooltip: {
             backgroundColor: "#0a4f6e",
             titleColor: "#fff",
@@ -1978,7 +2077,7 @@ function renderOaTimeChart(finished) {
   if (!canvas || typeof Chart === "undefined") return;
 
   const withYear = finished.filter((r) => r.publicationYear != null);
-  const years = Array.from(new Set(withYear.map((r) => r.publicationYear))).sort((a, b) => a - b);
+  const years = yearRange(withYear.map((r) => r.publicationYear));
   const counts = OA_TYPES.map((oa) => years.map(() => 0));
   withYear.forEach((r) => {
     const yearIdx = years.indexOf(r.publicationYear);
@@ -2000,11 +2099,11 @@ function renderOaTimeChart(finished) {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { stacked: true, ticks: { color: "#55606b", font: { size: 11 } }, grid: { display: false } },
-          y: { stacked: true, beginAtZero: true, ticks: { precision: 0, color: "#55606b" }, grid: { color: "#e6ebee" } },
+          x: { stacked: true, ticks: { color: tickColor(), font: { size: 11 } }, grid: { display: false } },
+          y: { stacked: true, beginAtZero: true, ticks: { precision: 0, color: tickColor() }, grid: { color: gridColor() } },
         },
         plugins: {
-          legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          legend: { position: "bottom", labels: { color: tickColor(), font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
           tooltip: { backgroundColor: "#0a4f6e", titleColor: "#fff", bodyColor: "#fff", padding: 10 },
         },
       },
@@ -2056,7 +2155,7 @@ function renderPdfChart(finished) {
           y: { stacked: true, display: false },
         },
         plugins: {
-          legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          legend: { position: "bottom", labels: { color: tickColor(), font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
           tooltip: {
             backgroundColor: "#0a4f6e",
             titleColor: "#fff",
@@ -2116,7 +2215,7 @@ function renderCostByOaChart(finished) {
         maintainAspectRatio: false,
         scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } },
         plugins: {
-          legend: { position: "bottom", labels: { color: "#55606b", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+          legend: { position: "bottom", labels: { color: tickColor(), font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
           tooltip: {
             backgroundColor: "#0a4f6e",
             titleColor: "#fff",
@@ -2198,7 +2297,7 @@ function renderCitationsByTierChart(finished) {
         { x: ti - HALF_WIDTH * 0.85, y: v.shape.median },
         { x: ti + HALF_WIDTH * 0.85, y: v.shape.median },
       ],
-      borderColor: "#111111",
+      borderColor: violinMedianColor(),
       borderWidth: 3,
       pointRadius: 0,
       fill: false,
@@ -2247,7 +2346,7 @@ function renderCitationsByTierChart(finished) {
           max: labels.length - 0.4,
           grid: { display: false },
           ticks: {
-            color: "#55606b",
+            color: tickColor(),
             stepSize: 1,
             font: { size: labels.length > 5 ? 9 : 11 },
             callback: (v) => (Number.isInteger(v) && v >= 0 && v < labels.length ? labels[v] : ""),
@@ -2256,9 +2355,9 @@ function renderCitationsByTierChart(finished) {
         y: {
           beginAtZero: true,
           max: cap,
-          ticks: { color: "#55606b" },
-          grid: { color: "#e6ebee" },
-          title: { display: true, text: currentLang === "de" ? "Zitationen" : "Citations", color: "#55606b", font: { size: 11 } },
+          ticks: { color: tickColor() },
+          grid: { color: gridColor() },
+          title: { display: true, text: currentLang === "de" ? "Zitationen" : "Citations", color: tickColor(), font: { size: 11 } },
         },
       },
     },
@@ -2278,8 +2377,8 @@ function renderCostByYearChart(finished) {
     if (r.cost == null || r.publicationYear == null) return;
     byYear[r.publicationYear] = (byYear[r.publicationYear] || 0) + convertCost(r.cost);
   });
-  const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
-  const sums = years.map((y) => Math.round(byYear[y] * 100) / 100);
+  const years = yearRange(finished.map((r) => r.publicationYear).filter((y) => y != null));
+  const sums = years.map((y) => Math.round((byYear[y] || 0) * 100) / 100);
   const sym = CURRENCY_SYMBOLS[currentCurrency];
 
   if (!costByYearChart) {
@@ -2287,7 +2386,7 @@ function renderCostByYearChart(finished) {
       type: "bar",
       data: {
         labels: years,
-        datasets: [{ label: currentLang === "de" ? "Kosten" : "Cost", data: sums, backgroundColor: "#0e6f99", borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, borderSkipped: "bottom", maxBarThickness: 32 }],
+        datasets: [{ label: currentLang === "de" ? "Kosten" : "Cost", data: sums, backgroundColor: accentColor(), borderRadius: { topLeft: 4, topRight: 4, bottomLeft: 0, bottomRight: 0 }, borderSkipped: "bottom", maxBarThickness: 32 }],
       },
       options: {
         responsive: true,
@@ -2303,12 +2402,12 @@ function renderCostByYearChart(finished) {
           },
         },
         scales: {
-          x: { grid: { display: false }, ticks: { color: "#55606b", font: { size: 11 } } },
+          x: { grid: { display: false }, ticks: { color: tickColor(), font: { size: 11 } } },
           y: {
             beginAtZero: true,
-            ticks: { color: "#55606b" },
-            grid: { color: "#e6ebee" },
-            title: { display: true, text: `${currentLang === "de" ? "Kosten" : "Cost"} (${currentCurrency})`, color: "#55606b", font: { size: 11 } },
+            ticks: { color: tickColor() },
+            grid: { color: gridColor() },
+            title: { display: true, text: `${currentLang === "de" ? "Kosten" : "Cost"} (${currentCurrency})`, color: tickColor(), font: { size: 11 } },
           },
         },
       },
@@ -2364,6 +2463,13 @@ const EXPORT_BUNDLED_FNS = [
   convertCost,
   formatNum,
   t,
+  isDark,
+  tickColor,
+  gridColor,
+  meanLineColor,
+  medianLineColor,
+  accentColor,
+  violinMedianColor,
   tierThresholdsFromEur,
   tierIndexForThresholds,
   tierLabelsForThresholds,
@@ -2372,6 +2478,7 @@ const EXPORT_BUNDLED_FNS = [
   costTierLabels,
   citationTierThresholds,
   citationTierLabels,
+  yearRange,
   medianOfSorted,
   violinShape,
   computeHistogram,
@@ -2620,16 +2727,16 @@ renderExportTable();
 <style>
   body { font-family: "Source Sans 3", Arial, sans-serif; color: #262b30; background: #f4f7f9; margin: 0; padding: 2rem; }
   .wrap { max-width: 880px; margin: 0 auto; }
-  h1 { font-family: Georgia, serif; color: #0e6f99; margin-bottom: 0.2rem; }
-  h2 { font-family: Georgia, serif; color: #0e6f99; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  h1 { font-family: Georgia, serif; color: #00305d; margin-bottom: 0.2rem; }
+  h2 { font-family: Georgia, serif; color: #00305d; font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
   .generated { color: #8b95a0; font-size: 0.85rem; margin-bottom: 1.2rem; }
   .candidate { font-size: 0.95rem; color: #55606b; margin: 0.2rem 0 1rem; }
-  .candidate a { color: #0e6f99; }
+  .candidate a { color: #00305d; }
   .retraction-banner { display: flex; gap: 8px; background: #fdeceb; color: #a4291c; border-left: 3px solid #a4291c; padding: 12px 14px; border-radius: 3px; margin: 0 0 1.2rem; font-weight: 600; }
   .retracted-badge { display: inline-block; background: #fdeceb; color: #a4291c; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; }
   .stats { display: flex; gap: 14px; margin: 1rem 0 1.5rem; flex-wrap: wrap; }
-  .stat { background: #eaf4f9; border-radius: 8px; padding: 12px 18px; text-align: center; min-width: 150px; }
-  .stat b { display: block; font-size: 1.3rem; color: #0a4f6e; }
+  .stat { background: #e5f6fd; border-radius: 8px; padding: 12px 18px; text-align: center; min-width: 150px; }
+  .stat b { display: block; font-size: 1.3rem; color: #00234a; }
   .stat span { font-size: 0.78rem; color: #55606b; }
   .first-author-note { color: #55606b; font-size: 0.9rem; margin: 0 0 1rem; }
   .chart-container { position: relative; height: 260px; background: #fff; border-radius: 8px; padding: 14px; margin: 0 0 6px; }
@@ -2640,12 +2747,12 @@ renderExportTable();
   .table-search-row input[type="search"] { flex: 1; border: none; outline: none; font-size: 0.9rem; color: #262b30; background: transparent; }
   table { border-collapse: collapse; width: 100%; background: #fff; font-size: 12.5px; box-shadow: 0 1px 3px rgba(15,40,55,0.07); }
   th, td { padding: 7px 9px; border-bottom: 1px solid #e6ebee; text-align: left; vertical-align: top; }
-  th { background: #f4f7f9; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.02em; color: #0e6f99; }
+  th { background: #f4f7f9; text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.02em; color: #00305d; }
   th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
   th.sortable::after { content: "\\2195"; margin-left: 5px; opacity: 0.35; font-size: 0.85em; }
   th.sortable[aria-sort="ascending"]::after { content: "\\2191"; opacity: 1; }
   th.sortable[aria-sort="descending"]::after { content: "\\2193"; opacity: 1; }
-  a { color: #0e6f99; }
+  a { color: #00305d; }
 </style>
 </head>
 <body>
@@ -2870,6 +2977,7 @@ if (!localStorage.getItem(WIP_DISMISS_KEY)) {
 }
 
 // ---------- init ----------
+initTheme();
 applyTranslations();
 renderGlossary();
 loadExchangeRates();

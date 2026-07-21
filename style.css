@@ -1,17 +1,27 @@
-:root {
-  /* --primary-light is sampled directly from the real MüCOS logo (#00a0cc) */
-  --primary: #0e6f99;
-  --primary-dark: #0a4f6e;
-  --primary-light: #00a0cc;
-  --primary-faint: #e7f4f9;
-  --slate: #33404d;
-  --text: #262b30;
-  --text-secondary: #55606b;
-  --text-muted: #8b95a0;
-  --text-faint: #b7c0c8;
-  --border: #d7dee3;
-  --border-light: #e6ebee;
-  --surface: #f4f7f9;
+/* University of Münster palette, matching the Bibliometric Dashboard and
+   e-Journals dashboard. --brand/--brand-dark are FIXED across both themes:
+   they're used for solid-fill surfaces with white text (buttons, active
+   pills), which would lose contrast if they lightened in dark mode the way
+   --primary (a text/link/border color) does. */
+:root,
+[data-theme="light"] {
+  --brand: #00305d;
+  --brand-dark: #00234a;
+  --primary: #00305d;
+  --primary-dark: #001f3d;
+  --primary-light: #009fe3;
+  --primary-faint: #e5f6fd;
+  --primary-faint-border: #9adcf5;
+  --primary-faint-hover: #d5eef8;
+  --slate: #1a1d21;
+  --text: #1a1d21;
+  --text-secondary: #374455;
+  --text-muted: #5b6770;
+  --text-faint: #b0bacb;
+  --border: #cfd6de;
+  --border-light: #e3e8ed;
+  --surface: #eef1f4;
+  --card: #ffffff;
   --white: #ffffff;
   --danger: #b3402a;
   --radius: 4px;
@@ -24,6 +34,30 @@
   --transition: 0.2s ease;
 }
 
+[data-theme="dark"] {
+  --brand: #00305d;
+  --brand-dark: #00234a;
+  --primary: #5fb5e5;
+  --primary-dark: #8fd0f0;
+  --primary-light: #00a0e0;
+  --primary-faint: rgba(0, 160, 224, 0.16);
+  --primary-faint-border: #1f6396;
+  --primary-faint-hover: rgba(0, 160, 224, 0.26);
+  --slate: #eef2f6;
+  --text: #eef2f6;
+  --text-secondary: #c7d1db;
+  --text-muted: #a7b4c0;
+  --text-faint: #5c6a79;
+  --border: #4a5663;
+  --border-light: #3f4a56;
+  --surface: #2c343f;
+  --card: #353f4b;
+  --white: #ffffff;
+  --danger: #f2795c;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
 * { box-sizing: border-box; }
 
 body {
@@ -32,6 +66,7 @@ body {
   background: var(--surface);
   color: var(--text);
   line-height: 1.5;
+  transition: background 0.2s, color 0.2s;
 }
 
 .wrap {
@@ -58,7 +93,7 @@ a { color: var(--primary); }
 
 .settings-bar {
   border-bottom: 1px solid var(--border-light);
-  background: var(--white);
+  background: var(--card);
   padding: 8px 0;
 }
 .settings-bar-row {
@@ -68,6 +103,9 @@ a { color: var(--primary); }
   gap: 14px;
 }
 .mucos-logo { height: 30px; width: auto; display: block; flex-shrink: 0; }
+/* The logo artwork itself is dark-on-transparent, so it needs a light plate
+   behind it in dark mode to stay legible against a dark settings bar. */
+[data-theme="dark"] .mucos-logo { background: #fff; padding: 4px 10px; border-radius: 4px; }
 .settings-bar-controls { display: flex; align-items: center; gap: 10px; }
 .lang-toggle {
   display: flex;
@@ -76,7 +114,7 @@ a { color: var(--primary); }
   overflow: hidden;
 }
 .lang-btn {
-  background: var(--white);
+  background: var(--card);
   border: none;
   color: var(--text-muted);
   font-size: 12px;
@@ -85,7 +123,7 @@ a { color: var(--primary); }
   padding: 6px 10px;
   cursor: pointer;
 }
-.lang-btn.active { background: var(--primary); color: var(--white); }
+.lang-btn.active { background: var(--brand); color: var(--white); }
 .lang-btn:hover:not(.active) { background: var(--primary-faint); color: var(--primary-dark); }
 
 .currency-toggle select {
@@ -96,9 +134,26 @@ a { color: var(--primary); }
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text);
-  background: var(--white);
+  background: var(--card);
   cursor: pointer;
 }
+
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.icon-btn:hover { color: var(--primary); border-color: var(--primary); }
+.icon-btn .icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
 
 /* ---------- hero / welcome state ---------- */
 
@@ -142,7 +197,7 @@ a { color: var(--primary); }
   border-radius: 3px;
   font-family: inherit;
   font-size: 0.9rem;
-  background: var(--white);
+  background: var(--card);
 }
 .contact-email-row .hint { margin: 6px 0 0; }
 
@@ -150,7 +205,7 @@ a { color: var(--primary); }
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: var(--white);
+  background: var(--card);
   border: 1px solid var(--border-light);
   border-radius: 3px;
   padding: 0.4rem;
@@ -163,7 +218,7 @@ a { color: var(--primary); }
 
 .welcome-search:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(21, 131, 173, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
 }
 
 .search-mode-toggle {
@@ -190,7 +245,7 @@ a { color: var(--primary); }
 }
 
 .search-mode-toggle .mode-btn.active {
-  background: var(--primary);
+  background: var(--brand);
   color: var(--white);
 }
 
@@ -216,7 +271,7 @@ a { color: var(--primary); }
 .tag-input-wrap input::placeholder { color: var(--text-muted); }
 
 .welcome-search-btn {
-  background: var(--primary);
+  background: var(--brand);
   color: var(--white);
   border: none;
   padding: 0.55rem 1.1rem;
@@ -230,13 +285,13 @@ a { color: var(--primary); }
   flex-shrink: 0;
 }
 
-.welcome-search-btn:hover { background: var(--primary-dark); }
+.welcome-search-btn:hover { background: var(--brand-dark); }
 .welcome-search-btn:disabled { background: var(--text-faint); cursor: not-allowed; }
 
 .welcome-paste-panel {
   width: 100%;
   max-width: 480px;
-  background: var(--white);
+  background: var(--card);
   border: 1px solid var(--border-light);
   border-radius: 3px;
   box-shadow: var(--shadow-sm);
@@ -247,7 +302,7 @@ a { color: var(--primary); }
 
 .welcome-paste-panel:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(21, 131, 173, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
 }
 
 .welcome-paste-panel textarea {
@@ -304,7 +359,7 @@ a { color: var(--primary); }
   align-items: center;
   gap: 12px;
   width: 100%;
-  background: var(--white);
+  background: var(--card);
   border: 1.5px dashed var(--border);
   border-radius: 3px;
   padding: 10px 14px;
@@ -358,7 +413,7 @@ a { color: var(--primary); }
 .welcome-advanced {
   width: 100%;
   max-width: 480px;
-  background: var(--white);
+  background: var(--card);
   border: 1px solid var(--border-light);
   border-radius: 3px;
   box-shadow: var(--shadow-sm);
@@ -399,7 +454,7 @@ a { color: var(--primary); }
   align-items: center;
   justify-content: space-between;
   padding: 0.6rem 0.85rem;
-  background: var(--white);
+  background: var(--card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
   font-size: 12.5px;
@@ -428,7 +483,7 @@ a { color: var(--primary); }
 main.wrap { padding-top: 4px; padding-bottom: 60px; }
 
 .card {
-  background: var(--white);
+  background: var(--card);
   border: none;
   border-top: 2px solid var(--primary);
   border-bottom: 1px solid var(--border-light);
@@ -453,7 +508,7 @@ textarea#review-textarea {
   border-radius: 3px;
   font-size: 0.95rem;
   font-family: inherit;
-  background: #fff;
+  background: var(--card);
   color: var(--text);
   resize: vertical;
 }
@@ -472,11 +527,11 @@ textarea#review-textarea {
   font-weight: 600;
   font-family: var(--font-body);
 }
-.btn-primary { background: var(--primary); color: #fff; }
-.btn-primary:hover { background: var(--primary-dark); }
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary:hover { background: var(--brand-dark); }
 .btn-primary:disabled { background: var(--text-faint); cursor: not-allowed; }
-.btn-secondary { background: var(--primary-faint); color: var(--primary-dark); border: 1px solid #cfe6ef; }
-.btn-secondary:hover { background: #dcedf4; }
+.btn-secondary { background: var(--primary-faint); color: var(--primary-dark); border: 1px solid var(--primary-faint-border); }
+.btn-secondary:hover { background: var(--primary-faint-hover); }
 
 .hidden { display: none !important; }
 
@@ -521,7 +576,7 @@ textarea#review-textarea {
   padding: 7px 10px;
   margin-bottom: 12px;
   color: var(--text-muted);
-  background: var(--white);
+  background: var(--card);
 }
 .table-search-row input[type="search"] {
   flex: 1;
@@ -595,6 +650,7 @@ tr.excluded-row .cell-cost { text-decoration: line-through; }
 .glossary-body dt { font-weight: 700; color: var(--primary-dark); margin-top: 10px; }
 .glossary-body dt:first-child { margin-top: 0; }
 .glossary-body dd { margin: 2px 0 0; color: var(--text-secondary); font-size: 0.92rem; line-height: 1.5; }
+.glossary-source { display: inline-block; margin-top: 3px; font-style: italic; }
 
 .chart-container-oa { height: 110px; }
 
@@ -682,7 +738,7 @@ tr.excluded-row .cell-cost { text-decoration: line-through; }
   z-index: 1000;
 }
 .wip-modal {
-  background: var(--white);
+  background: var(--card);
   border-top: 3px solid var(--danger);
   border-radius: 4px;
   box-shadow: var(--shadow-md);
@@ -705,6 +761,8 @@ tr.excluded-row .cell-cost { text-decoration: line-through; }
   .settings-bar-controls { gap: 6px; }
   .currency-toggle select { font-size: 11.5px; padding: 5px 4px; }
   .lang-btn { padding: 5px 7px; font-size: 11px; }
+  .icon-btn { width: 26px; height: 26px; }
+  .icon-btn .icon { width: 14px; height: 14px; }
 
   .welcome-state { padding: 1.75rem 0 1.5rem; }
   .welcome-state h1 { font-size: 1.4rem; }
