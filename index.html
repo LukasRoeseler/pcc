@@ -63,20 +63,20 @@
 
     <div class="welcome-search" id="welcome-search">
       <div class="search-mode-toggle" id="mode-toggle" role="group" aria-label="Input mode">
-        <button type="button" class="mode-btn active" data-mode="paste" data-i18n="mode_paste">Reference list</button>
-        <button type="button" class="mode-btn" data-mode="orcid" data-i18n="mode_orcid">Author name</button>
+        <button type="button" class="mode-btn active" data-mode="orcid" data-i18n="mode_orcid">Author name</button>
+        <button type="button" class="mode-btn" data-mode="paste" data-i18n="mode_paste">Paste</button>
         <button type="button" class="mode-btn" data-mode="upload" data-i18n="mode_upload">Upload</button>
       </div>
 
-      <div class="tag-input-wrap hidden" id="mode-orcid-wrap">
+      <div class="tag-input-wrap" id="mode-orcid-wrap">
         <label for="orcid-input" class="visually-hidden">Author name or ORCID iD</label>
         <input type="text" id="orcid-input" placeholder="Jane Doe, or 0000-0002-1825-0097" inputmode="text" autocomplete="off">
         <div class="orcid-search-results hidden" id="orcid-search-results"></div>
       </div>
-      <button type="button" class="welcome-search-btn hidden" id="fetch-orcid-btn" data-i18n="fetch_orcid_btn">Fetch works</button>
+      <button type="button" class="welcome-search-btn" id="fetch-orcid-btn" data-i18n="fetch_orcid_btn">Fetch works</button>
     </div>
 
-    <div class="welcome-paste-panel" id="mode-paste-panel">
+    <div class="welcome-paste-panel hidden" id="mode-paste-panel">
       <label for="ref-textarea" class="visually-hidden">References</label>
       <textarea id="ref-textarea" rows="6" placeholder="1. Smith, J. (2022). Title of article. Journal Name, 12(3), 45-67. https://doi.org/10.xxxx/xxxxx&#10;2. ..."></textarea>
       <div class="welcome-paste-actions">
@@ -101,7 +101,7 @@
       <input type="file" id="file-input" accept=".txt,.pdf,.docx,.bib" class="visually-hidden" aria-label="Upload reference file">
     </div>
 
-    <div class="welcome-first-author-filter" id="advanced-panel">
+    <div class="welcome-first-author-filter hidden" id="advanced-panel">
       <h3 data-i18n="advanced_title">First author filter</h3>
       <div class="field-row">
         <label for="user-orcid-input" data-i18n="your_orcid_label">Your ORCID iD (optional, for first-author filter)</label>
@@ -133,6 +133,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
     </button>
     <div class="glossary-body hidden" id="saved-info-body">
+      <p><strong data-i18n="saved_info_intro">We do not save or store any of your data. No reference list, uploaded file, ORCID iD, searched name, or computed result is written anywhere by us, on a server or otherwise; it exists only in your browser tab and is gone once you close or reload it.</strong></p>
       <p data-i18n-html="footnote"></p>
     </div>
   </section>
