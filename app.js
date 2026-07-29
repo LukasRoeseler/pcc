@@ -9,7 +9,6 @@ if (window.pdfjsLib) {
 }
 
 // ---------- global state ----------
-let referenceItems = []; // { raw, doi, searchQuery, include }
 let currentResults = [];
 let currentLang = "en";
 let currentCurrency = "EUR";
@@ -140,28 +139,24 @@ const TRANSLATIONS = {
   compare_chart_oa_title: { en: "Open access type by year", de: "Open-Access-Typ nach Jahr" },
   currency_label: { en: "Currency", de: "Währung" },
   hero_title: { en: "Publication Cost Calculator", de: "Publication Cost Calculator" },
-  hero_subtitle: {
-    en: "Paste a reference list, upload a file, or enter an ORCID iD to see article processing charges, OA type, citations, and Altmetric attention for every publication.",
-    de: "Fügen Sie eine Literaturliste ein, laden Sie eine Datei hoch oder geben Sie eine ORCID-iD ein, um für jede Publikation Publikationsgebühren (APCs), OA-Typ, Zitationen und Altmetric-Aufmerksamkeit zu sehen.",
-  },
-  mode_paste: { en: "Paste / Upload", de: "Einfügen / Hochladen" },
-  mode_orcid: { en: "ORCID iD", de: "ORCID-iD" },
+  mode_paste: { en: "Reference list", de: "Literaturliste" },
+  mode_orcid: { en: "Author name", de: "Autor:innenname" },
+  mode_upload: { en: "Upload", de: "Hochladen" },
   paste_hint: { en: "One reference per line, or a numbered list", de: "Eine Referenz pro Zeile oder eine nummerierte Liste" },
   parse_btn: { en: "Parse references", de: "Referenzen einlesen" },
   fetch_orcid_btn: { en: "Fetch works", de: "Werke abrufen" },
   or_divider: { en: "or", de: "oder" },
-  advanced_title: { en: "Advanced options", de: "Erweiterte Optionen" },
-  advanced_sub: { en: "First-author filter", de: "Erstautorenschafts-Filter" },
+  advanced_title: { en: "First author filter", de: "Erstautorenschafts-Filter" },
   upload_title: { en: "Upload a file", de: "Datei hochladen" },
   upload_sub: {
     en: ".txt, .pdf, .docx, or .bib, including Google Scholar/Zotero BibTeX exports",
     de: ".txt, .pdf, .docx oder .bib, einschließlich BibTeX-Exporte aus Google Scholar/Zotero",
   },
-  contact_email_label: { en: "Contact email", de: "Kontakt-E-Mail" },
+  contact_email_label: { en: "E-mail for API access", de: "E-Mail für API-Zugriff" },
   optional: { en: "(optional)", de: "(optional)" },
   contact_email_hint: {
-    en: 'Crossref, OpenAlex, and Unpaywall serve requests faster (and Unpaywall requires it at all) when they can identify a contact. Sent only to those APIs, directly from your browser.',
-    de: 'Crossref, OpenAlex und Unpaywall bearbeiten Anfragen schneller, wenn ein Kontakt angegeben ist (Unpaywall verlangt dies sogar). Wird nur direkt aus Ihrem Browser an diese APIs gesendet.',
+    en: "Crossref, OpenAlex, and Unpaywall serve requests faster (and Unpaywall requires it at all) when they can identify a contact. Sent only to those APIs, directly from your browser. This won't be saved by us.",
+    de: "Crossref, OpenAlex und Unpaywall bearbeiten Anfragen schneller, wenn ein Kontakt angegeben ist (Unpaywall verlangt dies sogar). Wird nur direkt aus Ihrem Browser an diese APIs gesendet. Wir speichern dies nicht.",
   },
   your_orcid_label: { en: "Your ORCID iD (optional, for first-author filter)", de: "Ihre ORCID-iD (optional, für Erstautorenschafts-Filter)" },
   first_author_toggle_label: { en: "Count first-authorship papers only towards costs", de: "Nur Erstautorenschaften in die Kosten einrechnen" },
@@ -181,16 +176,14 @@ const TRANSLATIONS = {
   example_list_btn: { en: "Load an example reference list", de: "Beispiel-Literaturliste laden" },
   example_orcid_btn: { en: "Try ORCID 0000-0002-1825-0097", de: "ORCID 0000-0002-1825-0097 testen" },
   glossary_title: { en: "What do these terms mean?", de: "Was bedeuten diese Begriffe?" },
-  review_title: { en: "Review & confirm", de: "Überprüfen & bestätigen" },
-  review_hint_text: {
-    en: "We split your input into {n} references. Edit below if anything looks wrong (one reference per line), then confirm.",
-    de: "Ihre Eingabe wurde in {n} Referenzen aufgeteilt. Bei Bedarf unten korrigieren (eine Referenz pro Zeile) und dann bestätigen.",
+  saved_info_title: { en: "What information is saved?", de: "Welche Informationen werden gespeichert?" },
+  orcid_search_empty: { en: "No matching researchers found.", de: "Keine passenden Forschenden gefunden." },
+  orcid_search_no_institution: { en: "No institution listed", de: "Keine Institution angegeben" },
+  share_label: { en: "Share these numbers", de: "Diese Zahlen teilen" },
+  share_message: {
+    en: "The publication costs of works by {name} are estimated to be {cost}. With {citations} citations, that makes an average cost of {costPerCitation} per citation. Find out what your research costs at https://lukasroeseler.github.io/pcc/.",
+    de: "Die Publikationskosten der Werke von {name} werden auf {cost} geschätzt. Bei {citations} Zitationen ergibt das durchschnittliche Kosten von {costPerCitation} pro Zitation. Finden Sie heraus, was Ihre Forschung kostet: https://lukasroeseler.github.io/pcc/.",
   },
-  review_hint_list: {
-    en: "Found {n} works. Untick anything you don't want priced.",
-    de: "{n} Werke gefunden. Entfernen Sie das Häkchen bei allem, das nicht bepreist werden soll.",
-  },
-  confirm_btn: { en: "Calculate costs", de: "Kosten berechnen" },
   progress_title: { en: "Processing…", de: "Verarbeitung…" },
   progress_label: { en: "{done} / {total} processed", de: "{done} / {total} verarbeitet" },
   results_title: { en: "Results", de: "Ergebnisse" },
@@ -325,8 +318,8 @@ const TRANSLATIONS = {
     de: "{n} zurückgezogene Publikation(en) unter diesen Werken gefunden. Details siehe Spalte Anmerkungen, bevor dieser Bericht verwendet wird.",
   },
   alert_invalid_orcid: {
-    en: "Please enter a valid ORCID iD, e.g. 0000-0002-1825-0097",
-    de: "Bitte geben Sie eine gültige ORCID-iD ein, z. B. 0000-0002-1825-0097",
+    en: "Please select a researcher from the search results, or enter a valid ORCID iD, e.g. 0000-0002-1825-0097",
+    de: "Bitte wählen Sie eine Person aus den Suchergebnissen, oder geben Sie eine gültige ORCID-iD ein, z. B. 0000-0002-1825-0097",
   },
   alert_orcid_none_found: { en: "No public works found for this ORCID iD.", de: "Keine öffentlichen Werke für diese ORCID-iD gefunden." },
   alert_orcid_failed_prefix: { en: "Could not fetch ORCID works: ", de: "ORCID-Werke konnten nicht abgerufen werden: " },
@@ -459,8 +452,8 @@ function applyTranslations() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
     el.placeholder = t(el.dataset.i18nPlaceholder);
   });
-  const orcidInput = document.getElementById("orcid-input");
-  if (orcidInput) orcidInput.placeholder = "0000-0002-1825-0097" + (currentLang === "de" ? " oder orcid.org/0000-0002-1825-0097" : " or orcid.org/0000-0002-1825-0097");
+  const orcidInputEl = document.getElementById("orcid-input");
+  if (orcidInputEl) orcidInputEl.placeholder = currentLang === "de" ? "Jane Doe, oder 0000-0002-1825-0097" : "Jane Doe, or 0000-0002-1825-0097";
   updateCostHeader();
 }
 
@@ -487,7 +480,6 @@ document.querySelectorAll("#lang-toggle .lang-btn").forEach((btn) => {
       renderTable();
       updateSummary();
     }
-    updateReviewHints();
   });
 });
 
@@ -497,6 +489,30 @@ document.getElementById("glossary-toggle").addEventListener("click", () => {
   const expanded = btn.getAttribute("aria-expanded") === "true";
   btn.setAttribute("aria-expanded", String(!expanded));
   body.classList.toggle("hidden", expanded);
+});
+
+document.getElementById("saved-info-toggle").addEventListener("click", () => {
+  const btn = document.getElementById("saved-info-toggle");
+  const body = document.getElementById("saved-info-body");
+  const expanded = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", String(!expanded));
+  body.classList.toggle("hidden", expanded);
+});
+
+// ---------- info pill (contact e-mail: hover reveals, click toggles for touch) ----------
+document.getElementById("contact-email-info-btn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+  const tip = document.getElementById("contact-email-info-tip");
+  const expanded = btn.getAttribute("aria-expanded") === "true";
+  btn.setAttribute("aria-expanded", String(!expanded));
+  tip.classList.toggle("open", !expanded);
+});
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".label-with-info")) {
+    document.getElementById("contact-email-info-tip").classList.remove("open");
+    document.getElementById("contact-email-info-btn").setAttribute("aria-expanded", "false");
+  }
 });
 
 // ================================================================
@@ -673,6 +689,20 @@ function csvEscape(v) {
   const s = String(v ?? "");
   if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
+}
+
+// Distinguishes multiple downloaded reports from each other: the ORCID iD
+// when known, else a slugified candidate name, else a generic fallback.
+function reportFilenameSuffix() {
+  if (candidateOrcidId) return candidateOrcidId;
+  if (candidateName) {
+    const slug = candidateName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    if (slug) return slug.slice(0, 40);
+  }
+  return "custom-list";
 }
 
 function downloadFile(content, filename, mime) {
@@ -1067,19 +1097,17 @@ document.querySelectorAll("#mode-toggle .mode-btn").forEach((btn) => {
 function setMode(mode) {
   document.querySelectorAll("#mode-toggle .mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
   const isOrcid = mode === "orcid";
+  const isUpload = mode === "upload";
+  const isPaste = mode === "paste";
   document.getElementById("mode-orcid-wrap").classList.toggle("hidden", !isOrcid);
   document.getElementById("fetch-orcid-btn").classList.toggle("hidden", !isOrcid);
-  document.getElementById("mode-paste-panel").classList.toggle("hidden", isOrcid);
+  document.getElementById("mode-paste-panel").classList.toggle("hidden", !isPaste);
+  document.getElementById("mode-upload-panel").classList.toggle("hidden", !isUpload);
+  // The first-author filter needs a separate "your ORCID iD" only when the
+  // target ORCID isn't already known from the Author-name search/fetch above.
+  document.getElementById("advanced-panel").classList.toggle("hidden", isOrcid);
+  if (!isOrcid) hideOrcidSearchResults();
 }
-
-// ---------- hero: advanced options ----------
-document.getElementById("advanced-toggle").addEventListener("click", () => {
-  const btn = document.getElementById("advanced-toggle");
-  const panel = document.getElementById("advanced-panel");
-  const expanded = btn.getAttribute("aria-expanded") === "true";
-  btn.setAttribute("aria-expanded", String(!expanded));
-  panel.classList.toggle("hidden");
-});
 
 // ---------- hero: upload card ----------
 document.getElementById("upload-card").addEventListener("click", () => {
@@ -1089,6 +1117,80 @@ document.getElementById("upload-card").addEventListener("click", () => {
 document.getElementById("file-input").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (file) await handleParseFile(file);
+});
+
+// ---------- hero: author-name search (Author name mode) ----------
+const orcidInput = document.getElementById("orcid-input");
+const orcidResultsEl = document.getElementById("orcid-search-results");
+let orcidSearchTimer = null;
+let orcidSearchToken = 0;
+
+function hideOrcidSearchResults() {
+  orcidResultsEl.classList.add("hidden");
+  orcidResultsEl.innerHTML = "";
+}
+
+async function searchOrcidByName(query) {
+  const res = await fetch(`https://pub.orcid.org/v3.0/expanded-search/?q=${encodeURIComponent(query)}&rows=8`, {
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error("ORCID search failed (" + res.status + ")");
+  const data = await res.json();
+  return (data["expanded-result"] || []).map((r) => ({
+    orcidId: r["orcid-id"],
+    name: r["credit-name"] || [r["given-names"], r["family-names"]].filter(Boolean).join(" ") || r["orcid-id"],
+    institutions: (r["institution-name"] || []).filter(Boolean),
+  }));
+}
+
+function renderOrcidSearchResults(results) {
+  orcidResultsEl.innerHTML = "";
+  if (results.length === 0) {
+    orcidResultsEl.innerHTML = `<div class="orcid-result-empty">${escapeHtml(t("orcid_search_empty"))}</div>`;
+  } else {
+    results.forEach((r) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "orcid-result";
+      row.innerHTML = `
+        <span class="orcid-result-name">${escapeHtml(r.name)}</span>
+        <span class="orcid-result-meta">${escapeHtml(r.institutions.join(", ") || t("orcid_search_no_institution"))} &middot; ${escapeHtml(r.orcidId)}</span>
+      `;
+      row.addEventListener("click", () => {
+        orcidInput.value = r.orcidId;
+        hideOrcidSearchResults();
+        handleFetchOrcid(r.orcidId);
+      });
+      orcidResultsEl.appendChild(row);
+    });
+  }
+  orcidResultsEl.classList.remove("hidden");
+}
+
+orcidInput.addEventListener("input", () => {
+  const raw = orcidInput.value.trim();
+  clearTimeout(orcidSearchTimer);
+  if (isValidOrcid(normalizeOrcidInput(raw)) || raw.length < 3) {
+    hideOrcidSearchResults();
+    return;
+  }
+  const token = ++orcidSearchToken;
+  orcidSearchTimer = setTimeout(async () => {
+    try {
+      const results = await searchOrcidByName(raw);
+      if (token !== orcidSearchToken) return; // a newer keystroke superseded this search
+      renderOrcidSearchResults(results);
+    } catch (e) {
+      if (token === orcidSearchToken) hideOrcidSearchResults();
+    }
+  }, 400);
+});
+
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("#mode-orcid-wrap")) hideOrcidSearchResults();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") hideOrcidSearchResults();
 });
 
 // ---------- hero: examples ----------
@@ -1118,7 +1220,17 @@ async function handleParseText(text) {
   candidateName = null;
   candidateOrcidId = null;
   const refs = splitReferences(text);
-  showReviewTextarea(refs);
+  if (refs.length === 0) {
+    alert(t("alert_no_refs"));
+    return;
+  }
+  const btn = document.getElementById("parse-btn");
+  btn.disabled = true;
+  try {
+    await calculateCosts(refs.map((l) => ({ raw: l, doi: null, searchQuery: l, include: true })));
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function handleParseFile(file) {
@@ -1130,9 +1242,12 @@ async function handleParseFile(file) {
     const ext = file.name.split(".").pop().toLowerCase();
     if (ext === "bib") {
       const text = await file.text();
-      const entries = parseBibtex(text);
-      referenceItems = entries.map(bibEntryToItem);
-      showReviewList();
+      const items = parseBibtex(text).map(bibEntryToItem);
+      if (items.length === 0) {
+        alert(t("alert_no_refs"));
+        return;
+      }
+      await calculateCosts(items);
       return;
     }
     let text;
@@ -1145,54 +1260,17 @@ async function handleParseFile(file) {
     } else {
       text = await file.text();
     }
-    showReviewTextarea(splitReferences(text));
+    const refs = splitReferences(text);
+    if (refs.length === 0) {
+      alert(t("alert_no_refs"));
+      return;
+    }
+    await calculateCosts(refs.map((l) => ({ raw: l, doi: null, searchQuery: l, include: true })));
   } catch (e) {
     alert(t("alert_parse_file_failed_prefix") + e.message);
   } finally {
     btn.disabled = false;
   }
-}
-
-let lastReviewCount = { mode: null, n: 0 };
-function updateReviewHints() {
-  if (lastReviewCount.mode === "text") {
-    document.getElementById("review-hint-text").textContent = t("review_hint_text", { n: lastReviewCount.n });
-  } else if (lastReviewCount.mode === "list") {
-    document.getElementById("review-hint-list").textContent = t("review_hint_list", { n: lastReviewCount.n });
-  }
-}
-
-function showReviewTextarea(refs) {
-  document.getElementById("review-section").classList.remove("hidden");
-  document.getElementById("review-text-mode").classList.remove("hidden");
-  document.getElementById("review-list-mode").classList.add("hidden");
-  lastReviewCount = { mode: "text", n: refs.length };
-  updateReviewHints();
-  document.getElementById("review-textarea").value = refs.join("\n");
-  document.getElementById("review-section").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function showReviewList() {
-  document.getElementById("review-section").classList.remove("hidden");
-  document.getElementById("review-text-mode").classList.add("hidden");
-  document.getElementById("review-list-mode").classList.remove("hidden");
-  lastReviewCount = { mode: "list", n: referenceItems.length };
-  updateReviewHints();
-  const container = document.getElementById("review-list");
-  container.innerHTML = "";
-  referenceItems.forEach((item, idx) => {
-    const row = document.createElement("div");
-    row.className = "review-item";
-    row.innerHTML = `
-      <input type="checkbox" data-idx="${idx}" ${item.include ? "checked" : ""}>
-      <span>${escapeHtml(item.raw)}${item.doi ? ` <span class="hint-inline">DOI: ${escapeHtml(item.doi)}</span>` : ""}</span>
-    `;
-    row.querySelector("input").addEventListener("change", (e) => {
-      referenceItems[idx].include = e.target.checked;
-    });
-    container.appendChild(row);
-  });
-  document.getElementById("review-section").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 // ---------- ORCID flow ----------
@@ -1207,13 +1285,13 @@ async function handleFetchOrcid(orcidRaw) {
     alert(t("alert_invalid_orcid"));
     return;
   }
+  hideOrcidSearchResults();
   btn.disabled = true;
   const originalLabel = btn.textContent;
   btn.textContent = "…";
   try {
     const [works, personName] = await Promise.all([getOrcidWorks(orcid), getOrcidPersonName(orcid)]);
-    referenceItems = works;
-    if (referenceItems.length === 0) {
+    if (works.length === 0) {
       alert(t("alert_orcid_none_found"));
       return;
     }
@@ -1221,7 +1299,7 @@ async function handleFetchOrcid(orcidRaw) {
     candidateOrcidId = orcid;
     // auto-fill "your ORCID" for the first-author filter (both entry points), if empty
     if (!userOrcidNorm) setUserOrcid(orcid);
-    showReviewList();
+    await calculateCosts(works);
   } catch (e) {
     alert(t("alert_orcid_failed_prefix") + e.message + t("alert_orcid_failed_hint"));
   } finally {
@@ -1230,29 +1308,6 @@ async function handleFetchOrcid(orcidRaw) {
   }
 }
 
-// ---------- confirm & calculate ----------
-document.getElementById("confirm-btn").addEventListener("click", async () => {
-  const textMode = !document.getElementById("review-text-mode").classList.contains("hidden");
-  let items;
-  if (textMode) {
-    const lines = document
-      .getElementById("review-textarea")
-      .value.split(/\r\n|\r|\n/)
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0);
-    items = lines.map((l) => ({ raw: l, doi: null, searchQuery: l, include: true }));
-  } else {
-    items = referenceItems.filter((it) => it.include);
-  }
-
-  if (items.length === 0) {
-    alert(t("alert_no_refs"));
-    return;
-  }
-
-  await calculateCosts(items);
-});
-
 // ---------- calculation ----------
 async function calculateCosts(items) {
   const email = getEmail();
@@ -1260,7 +1315,6 @@ async function calculateCosts(items) {
   const resultsSection = document.getElementById("results-section");
   progressSection.classList.remove("hidden");
   resultsSection.classList.remove("hidden");
-  document.getElementById("confirm-btn").disabled = true;
 
   currentResults = items.map((it) => ({ ...it, status: "pending", doi: it.doi || null }));
   rowElements = [];
@@ -1282,7 +1336,6 @@ async function calculateCosts(items) {
     updateProgress(done, items.length);
   });
 
-  document.getElementById("confirm-btn").disabled = false;
   progressSection.classList.add("hidden");
 }
 
@@ -1590,10 +1643,40 @@ function getAltmetricScore(i) {
   return v ? parseFloat(v) : null;
 }
 
-function renderCandidateAndRetraction(finished) {
+const SHARE_PLATFORMS = [
+  { key: "bluesky", label: "Bluesky", glyph: "B", shareUrl: (text) => `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}` },
+  { key: "mastodon", label: "Mastodon", glyph: "M", shareUrl: (text) => `https://mastodon.social/share?text=${encodeURIComponent(text)}` },
+  { key: "linkedin", label: "LinkedIn", glyph: "in", shareUrl: (_text, url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
+  { key: "reddit", label: "Reddit", glyph: "r", shareUrl: (text, url) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+];
+const SHARE_TOOL_URL = "https://lukasroeseler.github.io/pcc/";
+
+function buildShareMessage(stats) {
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+  const name = candidateName || `ORCID ${candidateOrcidId}`;
+  const costPerCitation = stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "n/a";
+  return t("share_message", {
+    name,
+    cost: sym + formatNum(stats.totalCost, 2),
+    citations: formatNum(stats.totalCitations, 0),
+    costPerCitation,
+  });
+}
+
+function renderShareButtons(stats) {
+  const container = document.getElementById("share-buttons");
+  const text = buildShareMessage(stats);
+  container.innerHTML = SHARE_PLATFORMS.map(
+    (p) =>
+      `<a class="share-btn" href="${escapeHtml(p.shareUrl(text, SHARE_TOOL_URL))}" target="_blank" rel="noopener" aria-label="${escapeHtml(p.label)}" title="${escapeHtml(p.label)}">${escapeHtml(p.glyph)}</a>`
+  ).join("");
+}
+
+function renderCandidateAndRetraction(finished, stats) {
   const header = document.getElementById("candidate-header");
   const nameEl = document.getElementById("candidate-name");
   const orcidLink = document.getElementById("candidate-orcid-link");
+  const shareRow = document.getElementById("share-row");
   if (candidateName || candidateOrcidId) {
     header.classList.remove("hidden");
     nameEl.textContent = candidateName || "";
@@ -1605,6 +1688,13 @@ function renderCandidateAndRetraction(finished) {
     }
   } else {
     header.classList.add("hidden");
+  }
+
+  if (candidateOrcidId && finished.length > 0) {
+    shareRow.classList.remove("hidden");
+    renderShareButtons(stats);
+  } else {
+    shareRow.classList.add("hidden");
   }
 
   const retractedWorks = finished.filter((r) => r.isRetracted);
@@ -1653,6 +1743,7 @@ function computeKpiStats(finished) {
     costPerCitation,
     costPerYear,
     openAccessShare,
+    totalCitations,
   };
 }
 
@@ -1666,8 +1757,8 @@ function updateSummary() {
     : "";
 
   const finished = currentResults.filter((r) => r.status === "done" && isIncluded(r));
-  renderCandidateAndRetraction(finished);
   const stats = computeKpiStats(finished);
+  renderCandidateAndRetraction(finished, stats);
 
   const sym = CURRENCY_SYMBOLS[currentCurrency];
   document.getElementById("stat-total-cost").textContent = sym + formatNum(stats.totalCost, 2);
@@ -2282,6 +2373,17 @@ function renderCostByOaChart(finished) {
 // ================================================================
 // citations by APC cost tier (average citations per fixed tier)
 // ================================================================
+// A dense grid of overlapping invisible hit-area points (see below) can, in
+// rare cases, tie for "nearest" within the same tier -- this custom mode
+// keeps only the first match per dataset so the violin tooltip never repeats.
+if (typeof Chart !== "undefined" && Chart.Interaction && !Chart.Interaction.modes.nearestUniqueDataset) {
+  Chart.Interaction.modes.nearestUniqueDataset = (chart, e, options, useFinalPosition) => {
+    const items = Chart.Interaction.modes.nearest(chart, e, options, useFinalPosition);
+    const seen = new Set();
+    return items.filter((it) => (seen.has(it.datasetIndex) ? false : (seen.add(it.datasetIndex), true)));
+  };
+}
+
 let citationsByTierChart = null;
 function renderCitationsByTierChart(finished) {
   const canvas = document.getElementById("citations-by-tier-bar");
@@ -2341,6 +2443,34 @@ function renderCitationsByTierChart(finished) {
       fill: false,
       showLine: true,
     });
+    // Invisible dense point grid covering the whole violin body. Chart.js line
+    // elements only register a hover/tooltip hit within a couple of pixels of
+    // the stroke itself, which made this violin need pixel-precise hovering
+    // (and land on two overlapping datasets at once near the median line,
+    // showing the tooltip twice). This grid gives a hit target across the
+    // full width/height of each tier's column; the tooltip filter below keeps
+    // only these points, and dedupeTooltipItems() below collapses same-tier
+    // duplicates, so exactly one entry shows no matter where you hover.
+    const hitPoints = [];
+    const gridCols = 9, gridRows = 15;
+    for (let gx = 0; gx <= gridCols; gx++) {
+      const dx = -HALF_WIDTH + (2 * HALF_WIDTH * gx) / gridCols;
+      for (let gy = 0; gy <= gridRows; gy++) {
+        hitPoints.push({ x: ti + dx, y: (cap * gy) / gridRows });
+      }
+    }
+    datasets.push({
+      label: v.label + " (hit area)",
+      tierIndex: ti,
+      isHitArea: true,
+      data: hitPoints,
+      showLine: false,
+      pointRadius: 0,
+      pointHoverRadius: 0,
+      pointHitRadius: 30,
+      backgroundColor: "rgba(0,0,0,0)",
+      borderColor: "rgba(0,0,0,0)",
+    });
   });
 
   const anyOffScale = violins.some((v) => v.shape && v.shape.offScale > 0);
@@ -2358,7 +2488,7 @@ function renderCitationsByTierChart(finished) {
       responsive: true,
       maintainAspectRatio: false,
       parsing: false,
-      interaction: { mode: "nearest", intersect: true },
+      interaction: { mode: "nearestUniqueDataset", intersect: true },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -2366,6 +2496,7 @@ function renderCitationsByTierChart(finished) {
           titleColor: "#fff",
           bodyColor: "#fff",
           padding: 10,
+          filter: (item) => item.dataset.isHitArea === true,
           callbacks: {
             title: (items) => (items.length ? violins[items[0].dataset.tierIndex].label : ""),
             label: (c) => {
@@ -2485,7 +2616,7 @@ document.getElementById("export-csv-btn").addEventListener("click", () => {
       r.noteKey ? t(r.noteKey) : "",
     ]);
   const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
-  downloadFile(csv, "publication-costs.csv", "text/csv;charset=utf-8");
+  downloadFile(csv, `publication-costs-${reportFilenameSuffix()}.csv`, "text/csv;charset=utf-8");
 });
 
 // ---------- HTML export ----------
@@ -2596,6 +2727,14 @@ const percentLabelPlugin = {
   },
 };
 Chart.register(percentLabelPlugin);
+
+if (Chart.Interaction && !Chart.Interaction.modes.nearestUniqueDataset) {
+  Chart.Interaction.modes.nearestUniqueDataset = (chart, e, options, useFinalPosition) => {
+    const items = Chart.Interaction.modes.nearest(chart, e, options, useFinalPosition);
+    const seen = new Set();
+    return items.filter((it) => (seen.has(it.datasetIndex) ? false : (seen.add(it.datasetIndex), true)));
+  };
+}
 `;
 
 function safeJsonForScript(obj) {
@@ -2872,7 +3011,7 @@ renderExportTable();
 </body>
 </html>`;
 
-  downloadFile(html, "publication-cost-report.html", "text/html;charset=utf-8");
+  downloadFile(html, `publication-cost-report-${reportFilenameSuffix()}.html`, "text/html;charset=utf-8");
 });
 
 // ================================================================
