@@ -28,7 +28,7 @@
 
 <div class="settings-bar">
   <div class="wrap settings-bar-row">
-    <img src="mucos-logo.png" alt="MüCOS: Münster Center for Open Science" class="mucos-logo">
+    <a href="index.html" class="app-name-link" id="app-name-link">Publication Cost Calculator</a>
     <div class="settings-bar-controls">
       <button type="button" class="icon-btn" id="theme-btn" aria-label="Toggle light or dark theme"></button>
       <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language / Sprache">
@@ -50,7 +50,7 @@
 <main class="wrap">
 
   <section class="welcome-state">
-    <h1 data-i18n="hero_title">Publication Cost Calculator</h1>
+    <h1 data-i18n="hero_title">How much did somebody's research cost? -- A cynical take on quantitative research assessment.</h1>
 
     <div class="contact-email-row">
       <div class="label-with-info">
@@ -127,6 +127,23 @@
     </div>
   </section>
 
+  <section class="card" id="faq-section">
+    <div class="faq-item">
+      <button type="button" class="glossary-toggle" id="faq-toggle-1" aria-expanded="false" aria-controls="faq-body-1">
+        <span data-i18n="faq_q1_title">What is this calculator about?</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="glossary-body hidden" id="faq-body-1" data-i18n-html="faq_q1_body"></div>
+    </div>
+    <div class="faq-item">
+      <button type="button" class="glossary-toggle" id="faq-toggle-2" aria-expanded="false" aria-controls="faq-body-2">
+        <span data-i18n="faq_q2_title">How accurate is the data?</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="glossary-body hidden" id="faq-body-2" data-i18n-html="faq_q2_body"></div>
+    </div>
+  </section>
+
   <section class="card" id="saved-info-section">
     <button type="button" class="glossary-toggle" id="saved-info-toggle" aria-expanded="false" aria-controls="saved-info-body">
       <span data-i18n="saved_info_title">What information is saved?</span>
@@ -192,12 +209,6 @@
     </div>
   </section>
 
-  <section class="card hidden" id="progress-section">
-    <h2 data-i18n="progress_title">Processing…</h2>
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
-    <p id="progress-label" class="hint">0 / 0</p>
-  </section>
-
   <section class="card hidden" id="results-section">
     <h2 data-i18n="results_title">Results</h2>
 
@@ -213,6 +224,11 @@
     <div class="retraction-banner hidden" id="retraction-banner">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       <span id="retraction-banner-text"></span>
+    </div>
+
+    <div class="results-progress hidden" id="results-progress">
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
+      <p id="progress-label" class="hint">0 / 0</p>
     </div>
 
     <div class="summary-grid">
@@ -262,13 +278,13 @@
 
     <h3 class="chart-title" data-i18n="chart_title_scatter_actual">Cost vs. actual citations</h3>
     <div class="chart-container">
-      <canvas id="cost-actual-scatter" role="img" aria-label="Scatter plot of APC cost against actual citations"></canvas>
+      <canvas id="cost-actual-scatter" role="img" aria-label="Scatter plot of APC cost against citations"></canvas>
     </div>
     <p class="hint chart-caption" data-i18n="chart_caption_scatter_actual">Each dot is one article: its APC cost against how many times it has actually been cited.</p>
 
     <h3 class="chart-title" data-i18n="chart_title_scatter_expected">Journal mean citedness vs. actual citations</h3>
     <div class="chart-container">
-      <canvas id="cost-expected-scatter" role="img" aria-label="Scatter plot of the hosting journal's mean citedness against actual citations"></canvas>
+      <canvas id="cost-expected-scatter" role="img" aria-label="Scatter plot of the hosting journal's mean citedness against citations"></canvas>
     </div>
     <p class="hint chart-caption" data-i18n="chart_caption_scatter_expected">Each dot is one article: its journal's mean citedness against how many times this specific article has actually been cited.</p>
 
@@ -293,6 +309,14 @@
       <canvas id="cost-by-oa-bar" role="img" aria-label="Stacked bar chart of total APC cost broken down by open access type"></canvas>
     </div>
     <p class="hint chart-caption" data-i18n="chart_caption_cost_by_oa">Which open access types account for the money actually spent, rather than just the number of articles.</p>
+
+    <div class="hidden" id="funder-chart-section">
+      <h3 class="chart-title" data-i18n="chart_title_funders">Funding sources</h3>
+      <div class="chart-container chart-container-oa">
+        <canvas id="funder-stacked-bar" role="img" aria-label="Stacked bar chart of estimated cost share by funder"></canvas>
+      </div>
+      <p class="hint chart-caption" data-i18n="chart_caption_funders">Based on funders credited in OpenAlex for each work. A work naming several funders has its cost split evenly between them, so this is an estimate, not an exact accounting.</p>
+    </div>
 
     <h3 class="chart-title" data-i18n="chart_title_citations_by_tier">Citations by cost tier</h3>
     <div class="chart-container chart-container-violin">
@@ -348,7 +372,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <p>Publication Cost Calculator. See the <a href="README.md">documentation and methodology</a>.</p>
+    <p data-i18n-html="footer_credits">Idea: Lukas Röseler. Code: Claude Sonnet 5. License: MIT. <a href="https://github.com/LukasRoeseler/pcc" target="_blank" rel="noopener">Source on GitHub</a>.</p>
   </div>
 </footer>
 

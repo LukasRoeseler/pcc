@@ -138,7 +138,14 @@ const TRANSLATIONS = {
   compare_chart_cost_title: { en: "Cost by year", de: "Kosten nach Jahr" },
   compare_chart_oa_title: { en: "Open access type by year", de: "Open-Access-Typ nach Jahr" },
   currency_label: { en: "Currency", de: "Währung" },
-  hero_title: { en: "Publication Cost Calculator", de: "Publication Cost Calculator" },
+  footer_credits: {
+    en: 'Idea: Lukas Röseler. Code: Claude Sonnet 5. License: MIT. <a href="https://github.com/LukasRoeseler/pcc" target="_blank" rel="noopener">Source on GitHub</a>.',
+    de: 'Idee: Lukas Röseler. Code: Claude Sonnet 5. Lizenz: MIT. <a href="https://github.com/LukasRoeseler/pcc" target="_blank" rel="noopener">Quellcode auf GitHub</a>.',
+  },
+  hero_title: {
+    en: "How much did somebody's research cost? -- A cynical take on quantitative research assessment.",
+    de: "Wie viel hat die Forschung von jemandem gekostet? -- Eine zynische Perspektive auf quantitative Forschungsbewertung.",
+  },
   mode_paste: { en: "Paste", de: "Einfügen" },
   mode_orcid: { en: "Author name", de: "Autor:innenname" },
   mode_upload: { en: "Upload", de: "Hochladen" },
@@ -176,6 +183,16 @@ const TRANSLATIONS = {
   example_list_btn: { en: "Load an example reference list", de: "Beispiel-Literaturliste laden" },
   example_orcid_btn: { en: "Try ORCID 0000-0002-1825-0097", de: "ORCID 0000-0002-1825-0097 testen" },
   glossary_title: { en: "What do these terms mean?", de: "Was bedeuten diese Begriffe?" },
+  faq_q1_title: { en: "What is this calculator about?", de: "Worum geht es bei diesem Rechner?" },
+  faq_q1_body: {
+    en: '<p>Please do not take this tool seriously.</p><p>Context: In many areas of research, scholars are assessed by how many articles they publish and how many citations they get. Works are not read but expected to be good just because they appeared in an academic journal that has a high number of average citations (even though computing an arithmetic mean for highly skewed citation numbers makes no sense). Thousands of researchers and institutions have signed a declaration to not use a single metric for quality assurance (<a href="https://sfdora.org" target="_blank" rel="noopener">sfdora.org</a>). I am one of these signatories and my cynical proposal is: If you think using a number to assess researchers is a good idea, why don\'t you calculate how much their research cost?</p>',
+    de: '<p>Bitte nehmen Sie dieses Tool nicht ernst.</p><p>Kontext: In vielen Forschungsbereichen werden Wissenschaftler:innen danach bewertet, wie viele Artikel sie veröffentlichen und wie viele Zitationen sie erhalten. Werke werden nicht gelesen, sondern schon deshalb als gut angenommen, weil sie in einer Fachzeitschrift mit hoher durchschnittlicher Zitationszahl erschienen sind (obwohl ein arithmetisches Mittel bei stark schiefen Zitationsverteilungen wenig Sinn ergibt). Tausende Forschende und Institutionen haben eine Erklärung unterschrieben, keine einzelne Kennzahl zur Qualitätssicherung zu verwenden (<a href="https://sfdora.org" target="_blank" rel="noopener">sfdora.org</a>). Ich bin einer dieser Unterzeichner, und mein zynischer Vorschlag lautet: Wenn Sie es für eine gute Idee halten, Forschende anhand einer Zahl zu bewerten, warum berechnen Sie dann nicht, wie viel ihre Forschung gekostet hat?</p>',
+  },
+  faq_q2_title: { en: "How accurate is the data?", de: "Wie genau sind die Daten?" },
+  faq_q2_body: {
+    en: '<p>Coverage varies by source. Crossref resolves pasted references to a DOI via a fuzzy title/author match, which can occasionally pick the wrong work, especially for short or generic titles. OpenAlex then supplies citation counts, journal mean citedness, open access status, and pricing: apc_list is a publisher-supplied list price, apc_paid is an actual payment sourced from OpenAPC where one has been reported. Pricing data is missing for many journals, and where present, list prices don\'t reflect the discounts, waivers, or institutional deals many authors actually get. DOAJ is used as a fallback to confirm a journal charges no APC (diamond OA) when OpenAlex has no pricing on record. Unpaywall is queried per article for a free legal PDF copy, and ORCID supplies the works list in Author-name/ORCID mode, so its coverage depends entirely on what a researcher has added to their own profile. Altmetric attention scores may be missing for less-discussed articles.</p><p>Currency conversion uses live European Central Bank reference rates via the <a href="https://www.frankfurter.app" target="_blank" rel="noopener">Frankfurter API</a>; if that\'s unreachable, approximate fallback rates are used instead.</p>',
+    de: '<p>Die Abdeckung ist je nach Quelle unterschiedlich. Crossref löst eingefügte Referenzen über einen unscharfen Titel-/Autor:innen-Abgleich zu einer DOI auf, was gelegentlich das falsche Werk treffen kann, besonders bei kurzen oder generischen Titeln. OpenAlex liefert dann Zitationszahlen, die mittlere Zitierhäufigkeit der Zeitschrift, den Open-Access-Status und die Preisangaben: apc_list ist ein von Verlagen angegebener Listenpreis, apc_paid ist ein tatsächlich gezahlter Betrag aus OpenAPC, sofern gemeldet. Für viele Zeitschriften fehlen Preisdaten, und wo sie vorhanden sind, spiegeln Listenpreise nicht die Rabatte, Erlasse oder institutionellen Vereinbarungen wider, die viele Autor:innen tatsächlich erhalten. DOAJ dient als Ausweichquelle, um zu bestätigen, dass eine Zeitschrift keine APC verlangt (Diamond OA), wenn OpenAlex keine Preisangabe verzeichnet. Unpaywall wird je Artikel nach einer frei zugänglichen, legalen PDF-Kopie abgefragt, und ORCID liefert im Modus Autor:innenname/ORCID die Werkliste, deren Abdeckung vollständig davon abhängt, was eine Person selbst in ihrem Profil hinterlegt hat. Altmetric-Aufmerksamkeitswerte können bei wenig beachteten Artikeln fehlen.</p><p>Die Währungsumrechnung nutzt aktuelle Referenzkurse der Europäischen Zentralbank über die <a href="https://www.frankfurter.app" target="_blank" rel="noopener">Frankfurter API</a>; ist diese nicht erreichbar, werden stattdessen ungefähre Ersatzkurse verwendet.</p>',
+  },
   saved_info_title: { en: "What information is saved?", de: "Welche Informationen werden gespeichert?" },
   saved_info_intro: {
     en: "We do not save or store any of your data. No reference list, uploaded file, ORCID iD, searched name, or computed result is written anywhere by us, on a server or otherwise; it exists only in your browser tab and is gone once you close or reload it.",
@@ -202,12 +219,12 @@ const TRANSLATIONS = {
     en: "{n} priced article{plural} grouped into fixed cost tiers (free, up to 400, up to 2,500, and above, converted from EUR). Dashed lines mark the mean and median. Full values are in the table below.",
     de: "{n} bepreiste Artikel, gruppiert in feste Kostenstufen (kostenlos, bis 400, bis 2.500, darüber, umgerechnet aus EUR). Gestrichelte Linien markieren Mittelwert und Median. Alle Werte stehen in der Tabelle unten.",
   },
-  chart_title_scatter_actual: { en: "Cost vs. actual citations", de: "Kosten vs. tatsächliche Zitationen" },
+  chart_title_scatter_actual: { en: "Cost vs. citations", de: "Kosten vs. Zitationen" },
   chart_caption_scatter_actual: {
     en: "Each dot is one article: its APC cost against how many times it has actually been cited.",
     de: "Jeder Punkt ist ein Artikel: seine APC-Kosten im Vergleich zur tatsächlichen Zitationszahl.",
   },
-  chart_title_scatter_expected: { en: "Journal mean citedness vs. actual citations", de: "Mittlere Zitierhäufigkeit der Zeitschrift vs. tatsächliche Zitationen" },
+  chart_title_scatter_expected: { en: "Journal mean citedness vs. citations", de: "Mittlere Zitierhäufigkeit der Zeitschrift vs. Zitationen" },
   chart_caption_scatter_expected: {
     en: "Each dot is one article: its journal's mean citedness (a snapshot of that journal's average citation rate over its most recently tracked 2-year window, not a prediction) against how many times this specific article has actually been cited. Points above the diagonal trend are outperforming their journal's typical rate.",
     de: "Jeder Punkt ist ein Artikel: die mittlere Zitierhäufigkeit seiner Zeitschrift (eine Momentaufnahme der durchschnittlichen Zitierrate über das zuletzt erfasste 2-Jahres-Fenster, keine Vorhersage) im Vergleich zur tatsächlichen Zitationszahl dieses Artikels. Punkte über dem allgemeinen Trend übertreffen die typische Rate ihrer Zeitschrift.",
@@ -220,6 +237,12 @@ const TRANSLATIONS = {
     en: "Which open access types account for the money actually spent, rather than just the number of articles.",
     de: "Welche Open-Access-Typen für das tatsächlich ausgegebene Geld verantwortlich sind, statt nur für die Anzahl der Artikel.",
   },
+  chart_title_funders: { en: "Funding sources", de: "Förderquellen" },
+  chart_caption_funders: {
+    en: "Based on funders credited in OpenAlex for each work. A work naming several funders has its cost split evenly between them, so this is an estimate, not an exact accounting.",
+    de: "Basierend auf den in OpenAlex je Werk genannten Förderern. Nennt ein Werk mehrere Förderer, werden dessen Kosten gleichmäßig unter ihnen aufgeteilt; dies ist daher eine Schätzung, keine exakte Abrechnung.",
+  },
+  funder_other_label: { en: "Other funders", de: "Andere Förderer" },
   chart_title_citations_by_tier: { en: "Citations by cost tier", de: "Zitationen nach Kostenstufe" },
   chart_caption_citations_by_tier: {
     en: "Each violin shows the full citation distribution for articles in that cost tier (not just an average), with a solid dash marking the median. Free (€0) articles are their own tier; paid articles are split into finer tiers than the cost distribution above.",
@@ -501,6 +524,16 @@ document.getElementById("saved-info-toggle").addEventListener("click", () => {
   const expanded = btn.getAttribute("aria-expanded") === "true";
   btn.setAttribute("aria-expanded", String(!expanded));
   body.classList.toggle("hidden", expanded);
+});
+
+["faq-toggle-1", "faq-toggle-2"].forEach((btnId) => {
+  const btn = document.getElementById(btnId);
+  const body = document.getElementById(btnId.replace("toggle", "body"));
+  btn.addEventListener("click", () => {
+    const expanded = btn.getAttribute("aria-expanded") === "true";
+    btn.setAttribute("aria-expanded", String(!expanded));
+    body.classList.toggle("hidden", expanded);
+  });
 });
 
 // ---------- info pill (contact e-mail: hover reveals, click toggles for touch) ----------
@@ -1315,17 +1348,18 @@ async function handleFetchOrcid(orcidRaw) {
 // ---------- calculation ----------
 async function calculateCosts(items) {
   const email = getEmail();
-  const progressSection = document.getElementById("progress-section");
+  const progressEl = document.getElementById("results-progress");
   const resultsSection = document.getElementById("results-section");
-  progressSection.classList.remove("hidden");
+  progressEl.classList.remove("hidden");
   resultsSection.classList.remove("hidden");
+  statAnimState = {}; // count up from zero for a fresh report, rather than tweening from a stale prior one
 
   currentResults = items.map((it) => ({ ...it, status: "pending", doi: it.doi || null }));
   rowElements = [];
   renderTable();
   updateSummary();
   updateProgress(0, items.length);
-  progressSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  resultsSection.scrollIntoView({ behavior: "smooth", block: "start" });
 
   let done = 0;
   const update = (idx, patch) => {
@@ -1340,7 +1374,7 @@ async function calculateCosts(items) {
     updateProgress(done, items.length);
   });
 
-  progressSection.classList.add("hidden");
+  progressEl.classList.add("hidden");
 }
 
 async function processItem(item, index, email, onUpdate) {
@@ -1396,6 +1430,7 @@ async function processItem(item, index, email, onUpdate) {
   const authorships = (work && work.authorships) || null;
   const publicationYear = (work && work.publication_year) || null;
   const isRetracted = !!(work && work.is_retracted);
+  const funders = (work && work.funders && work.funders.map((f) => f.display_name).filter(Boolean)) || [];
   // preprints always have a downloadable PDF at their host repository; no need to ask Unpaywall
   const unpaywallInfo = estimate.oaStatus === "preprint" ? null : await getUnpaywallInfo(doi, email);
 
@@ -1416,6 +1451,7 @@ async function processItem(item, index, email, onUpdate) {
     authorships,
     publicationYear,
     isRetracted,
+    funders,
     hasPdf: estimate.oaStatus === "preprint" ? true : unpaywallInfo ? unpaywallInfo.hasPdf : null,
   });
 }
@@ -1647,11 +1683,32 @@ function getAltmetricScore(i) {
   return v ? parseFloat(v) : null;
 }
 
+// Logo path data: Simple Icons (simpleicons.org), CC0.
 const SHARE_PLATFORMS = [
-  { key: "bluesky", label: "Bluesky", glyph: "B", shareUrl: (text) => `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}` },
-  { key: "mastodon", label: "Mastodon", glyph: "M", shareUrl: (text) => `https://mastodon.social/share?text=${encodeURIComponent(text)}` },
-  { key: "linkedin", label: "LinkedIn", glyph: "in", shareUrl: (_text, url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}` },
-  { key: "reddit", label: "Reddit", glyph: "r", shareUrl: (text, url) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+  {
+    key: "bluesky",
+    label: "Bluesky",
+    svg: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M5.202 2.857C7.954 4.922 10.913 9.11 12 11.358c1.087-2.247 4.046-6.436 6.798-8.501C20.783 1.366 24 .213 24 3.883c0 .732-.42 6.156-.667 7.037-.856 3.061-3.978 3.842-6.755 3.37 4.854.826 6.089 3.562 3.422 6.299-5.065 5.196-7.28-1.304-7.847-2.97-.104-.305-.152-.448-.153-.327 0-.121-.05.022-.153.327-.568 1.666-2.782 8.166-7.847 2.97-2.667-2.737-1.432-5.473 3.422-6.3-2.777.473-5.899-.308-6.755-3.369C.42 10.04 0 4.615 0 3.883c0-3.67 3.217-2.517 5.202-1.026"/></svg>',
+    shareUrl: (text) => `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
+  },
+  {
+    key: "mastodon",
+    label: "Mastodon",
+    svg: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M23.268 5.313c-.35-2.578-2.617-4.61-5.304-5.004C17.51.242 15.792 0 11.813 0h-.03c-3.98 0-4.835.242-5.288.309C3.882.692 1.496 2.518.917 5.127.64 6.412.61 7.837.661 9.143c.074 1.874.088 3.745.26 5.611.118 1.24.325 2.47.62 3.68.55 2.237 2.777 4.098 4.96 4.857 2.336.792 4.849.923 7.256.38.265-.061.527-.132.786-.213.585-.184 1.27-.39 1.774-.753a.057.057 0 0 0 .023-.043v-1.809a.052.052 0 0 0-.02-.041.053.053 0 0 0-.046-.01 20.282 20.282 0 0 1-4.709.545c-2.73 0-3.463-1.284-3.674-1.818a5.593 5.593 0 0 1-.319-1.433.053.053 0 0 1 .066-.054c1.517.363 3.072.546 4.632.546.376 0 .75 0 1.125-.01 1.57-.044 3.224-.124 4.768-.422.038-.008.077-.015.11-.024 2.435-.464 4.753-1.92 4.989-5.604.008-.145.03-1.52.03-1.67.002-.512.167-3.63-.024-5.545zm-3.748 9.195h-2.561V8.29c0-1.309-.55-1.976-1.67-1.976-1.23 0-1.846.79-1.846 2.35v3.403h-2.546V8.663c0-1.56-.617-2.35-1.848-2.35-1.112 0-1.668.668-1.67 1.977v6.218H4.822V8.102c0-1.31.337-2.35 1.011-3.12.696-.77 1.608-1.164 2.74-1.164 1.311 0 2.302.5 2.962 1.498l.638 1.06.638-1.06c.66-.999 1.65-1.498 2.96-1.498 1.13 0 2.043.395 2.74 1.164.675.77 1.012 1.81 1.012 3.12z"/></svg>',
+    shareUrl: (text) => `https://mastodon.social/share?text=${encodeURIComponent(text)}`,
+  },
+  {
+    key: "linkedin",
+    label: "LinkedIn",
+    svg: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>',
+    shareUrl: (_text, url) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
+  },
+  {
+    key: "reddit",
+    label: "Reddit",
+    svg: '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 0C5.373 0 0 5.373 0 12c0 3.314 1.343 6.314 3.515 8.485l-2.286 2.286C.775 23.225 1.097 24 1.738 24H12c6.627 0 12-5.373 12-12S18.627 0 12 0Zm4.388 3.199c1.104 0 1.999.895 1.999 1.999 0 1.105-.895 2-1.999 2-.946 0-1.739-.657-1.947-1.539v.002c-1.147.162-2.032 1.15-2.032 2.341v.007c1.776.067 3.4.567 4.686 1.363.473-.363 1.064-.58 1.707-.58 1.547 0 2.802 1.254 2.802 2.802 0 1.117-.655 2.081-1.601 2.531-.088 3.256-3.637 5.876-7.997 5.876-4.361 0-7.905-2.617-7.998-5.87-.954-.447-1.614-1.415-1.614-2.538 0-1.548 1.255-2.802 2.803-2.802.645 0 1.239.218 1.712.585 1.275-.79 2.881-1.291 4.64-1.365v-.01c0-1.663 1.263-3.034 2.88-3.207.188-.911.993-1.595 1.959-1.595Zm-8.085 8.376c-.784 0-1.459.78-1.506 1.797-.047 1.016.64 1.429 1.426 1.429.786 0 1.371-.369 1.418-1.385.047-1.017-.553-1.841-1.338-1.841Zm7.406 0c-.786 0-1.385.824-1.338 1.841.047 1.017.634 1.385 1.418 1.385.785 0 1.473-.413 1.426-1.429-.046-1.017-.721-1.797-1.506-1.797Zm-3.703 4.013c-.974 0-1.907.048-2.77.135-.147.015-.241.168-.183.305.483 1.154 1.622 1.964 2.953 1.964 1.33 0 2.47-.81 2.953-1.964.057-.137-.037-.29-.184-.305-.863-.087-1.795-.135-2.769-.135Z"/></svg>',
+    shareUrl: (text, url) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}`,
+  },
 ];
 const SHARE_TOOL_URL = "https://lukasroeseler.github.io/pcc/";
 
@@ -1672,7 +1729,7 @@ function renderShareButtons(stats) {
   const text = buildShareMessage(stats);
   container.innerHTML = SHARE_PLATFORMS.map(
     (p) =>
-      `<a class="share-btn" href="${escapeHtml(p.shareUrl(text, SHARE_TOOL_URL))}" target="_blank" rel="noopener" aria-label="${escapeHtml(p.label)}" title="${escapeHtml(p.label)}">${escapeHtml(p.glyph)}</a>`
+      `<a class="share-btn" href="${escapeHtml(p.shareUrl(text, SHARE_TOOL_URL))}" target="_blank" rel="noopener" aria-label="${escapeHtml(p.label)}" title="${escapeHtml(p.label)}">${p.svg}</a>`
   ).join("");
 }
 
@@ -1751,6 +1808,45 @@ function computeKpiStats(finished) {
   };
 }
 
+// Count-up animation for the KPI numbers, so incremental updates while
+// results are still loading feel alive rather than jumping instantly.
+// Keyed by name so a later call for the same stat cancels/replaces the
+// previous animation instead of the two fighting over the element's text.
+let statAnimState = {};
+function animateStatNumber(key, el, target, formatFn) {
+  if (target == null) {
+    if (statAnimState[key] && statAnimState[key].raf) cancelAnimationFrame(statAnimState[key].raf);
+    statAnimState[key] = { current: 0, raf: null };
+    el.textContent = "–";
+    return;
+  }
+  const prevState = statAnimState[key];
+  const from = prevState ? prevState.current : 0;
+  if (prevState && prevState.raf) cancelAnimationFrame(prevState.raf);
+  const state = { current: from, raf: null };
+  statAnimState[key] = state;
+  if (Math.abs(target - from) < 0.005) {
+    state.current = target;
+    el.textContent = formatFn(target);
+    return;
+  }
+  const duration = 450;
+  const start = performance.now();
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = from + (target - from) * eased;
+    state.current = value; // track the actually-displayed value, so a rapid follow-up update (still mid-flight) continues smoothly from here rather than jumping back to `from`
+    el.textContent = formatFn(value);
+    if (t < 1) {
+      state.raf = requestAnimationFrame(tick);
+    } else {
+      state.raf = null;
+    }
+  };
+  state.raf = requestAnimationFrame(tick);
+}
+
 function updateSummary() {
   const active = filterActive();
   document.getElementById("first-author-note").style.display = firstAuthorOnly ? "block" : "none";
@@ -1765,12 +1861,12 @@ function updateSummary() {
   renderCandidateAndRetraction(finished, stats);
 
   const sym = CURRENCY_SYMBOLS[currentCurrency];
-  document.getElementById("stat-total-cost").textContent = sym + formatNum(stats.totalCost, 2);
-  document.getElementById("stat-avg-all").textContent = sym + formatNum(stats.avgAll, 2);
-  document.getElementById("stat-avg-paid").textContent = sym + formatNum(stats.avgPaid, 2);
-  document.getElementById("stat-determined").textContent = `${formatNum(stats.determinedCount, 0)} / ${formatNum(stats.finishedCount, 0)}`;
-  document.getElementById("stat-cost-per-citation").textContent = stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "–";
-  document.getElementById("stat-cost-per-year").textContent = stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–";
+  animateStatNumber("totalCost", document.getElementById("stat-total-cost"), stats.totalCost, (v) => sym + formatNum(v, 2));
+  animateStatNumber("avgAll", document.getElementById("stat-avg-all"), stats.avgAll, (v) => sym + formatNum(v, 2));
+  animateStatNumber("avgPaid", document.getElementById("stat-avg-paid"), stats.avgPaid, (v) => sym + formatNum(v, 2));
+  animateStatNumber("determinedCount", document.getElementById("stat-determined"), stats.determinedCount, (v) => `${formatNum(v, 0)} / ${formatNum(stats.finishedCount, 0)}`);
+  animateStatNumber("costPerCitation", document.getElementById("stat-cost-per-citation"), stats.costPerCitation, (v) => sym + formatNum(v, 2));
+  animateStatNumber("costPerYear", document.getElementById("stat-cost-per-year"), stats.costPerYear, (v) => sym + formatNum(v, 2));
 
   renderHistogram(stats.determinedConverted);
   renderActualScatter(finished);
@@ -1779,6 +1875,7 @@ function updateSummary() {
   renderOaTimeChart(finished);
   renderPdfChart(finished);
   renderCostByOaChart(finished);
+  renderFunderChart(finished);
   renderCitationsByTierChart(finished);
   renderCostByYearChart(finished);
 }
@@ -2086,7 +2183,7 @@ function renderActualScatter(finished) {
     if (r.cost == null || r.citedByCount == null) return;
     points.push({ x: convertCost(r.cost), y: r.citedByCount, title: r.matchedTitle || r.raw });
   });
-  const yLabel = currentLang === "de" ? "Tatsächliche Zitationen" : "Actual citations";
+  const yLabel = currentLang === "de" ? "Zitationen" : "Citations";
   actualScatterChart = buildScatterChart(actualScatterChart, "cost-actual-scatter", points, accentColor(), `APC cost (${currentCurrency})`, yLabel, true);
 }
 
@@ -2098,7 +2195,7 @@ function renderExpectedScatter(finished) {
     points.push({ x: r.meanCitedness, y: r.citedByCount, title: r.matchedTitle || r.raw });
   });
   const xLabel = currentLang === "de" ? "Ø Zitierhäufigkeit der Zeitschrift (2 J.)" : "Journal mean citedness (2yr)";
-  const yLabel = currentLang === "de" ? "Tatsächliche Zitationen" : "Actual citations";
+  const yLabel = currentLang === "de" ? "Zitationen" : "Citations";
   expectedScatterChart = buildScatterChart(expectedScatterChart, "cost-expected-scatter", points, "#d1652c", xLabel, yLabel, false);
 }
 
@@ -2116,10 +2213,12 @@ const OA_TYPES = [
   { key: "unknown", color: "#3fa0c9" },
 ];
 
+const FUNDER_COLORS = ["#00305d", "#009fe3", "#2f8f5b", "#d1652c", "#8f2626", "#7a9c3f", "#96551f", "#5b3a8f"];
+
 const percentLabelPlugin = {
   id: "percentLabels",
   afterDatasetsDraw(chart) {
-    if (chart.canvas.id !== "oa-stacked-bar" && chart.canvas.id !== "pdf-stacked-bar") return;
+    if (chart.canvas.id !== "oa-stacked-bar" && chart.canvas.id !== "pdf-stacked-bar" && chart.canvas.id !== "funder-stacked-bar") return;
     const { ctx } = chart;
     ctx.save();
     ctx.font = "600 11px 'Source Sans 3', sans-serif";
@@ -2372,6 +2471,86 @@ function renderCostByOaChart(finished) {
     });
     costByOaChart.update();
   }
+}
+
+// ================================================================
+// funders (ORCID/author mode only): who paid for this person's research
+// ================================================================
+// OpenAlex lists funders per work but not a per-funder cost breakdown, so a
+// work naming N funders has its cost split evenly N ways. That's a real
+// simplification (funders are credited, not necessarily equal co-payers),
+// spelled out in the chart's caption rather than hidden.
+let funderChart = null;
+function renderFunderChart(finished) {
+  const canvas = document.getElementById("funder-stacked-bar");
+  const section = document.getElementById("funder-chart-section");
+  if (!canvas || !section || typeof Chart === "undefined") return;
+
+  if (!candidateOrcidId) {
+    section.classList.add("hidden");
+    return;
+  }
+
+  const totals = new Map();
+  finished.forEach((r) => {
+    if (r.cost == null || !r.funders || r.funders.length === 0) return;
+    const share = convertCost(r.cost) / r.funders.length;
+    r.funders.forEach((name) => {
+      totals.set(name, (totals.get(name) || 0) + share);
+    });
+  });
+
+  if (totals.size === 0) {
+    section.classList.add("hidden");
+    return;
+  }
+  section.classList.remove("hidden");
+
+  const MAX_SEGMENTS = 8;
+  let entries = Array.from(totals.entries()).sort((a, b) => b[1] - a[1]);
+  if (entries.length > MAX_SEGMENTS) {
+    const top = entries.slice(0, MAX_SEGMENTS - 1);
+    const restSum = entries.slice(MAX_SEGMENTS - 1).reduce((s, [, v]) => s + v, 0);
+    entries = [...top, [t("funder_other_label"), restSum]];
+  }
+
+  const datasets = entries.map(([name, value], i) => ({
+    label: name,
+    data: [Math.round(value * 100) / 100],
+    backgroundColor: FUNDER_COLORS[i % FUNDER_COLORS.length],
+  }));
+  const sym = CURRENCY_SYMBOLS[currentCurrency];
+
+  if (funderChart) {
+    funderChart.destroy();
+    funderChart = null;
+  }
+  funderChart = new Chart(canvas.getContext("2d"), {
+    type: "bar",
+    data: { labels: [""], datasets },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: { x: { stacked: true, display: false }, y: { stacked: true, display: false } },
+      plugins: {
+        legend: { position: "bottom", labels: { color: tickColor(), font: { size: 11 }, boxWidth: 10, boxHeight: 10 } },
+        tooltip: {
+          backgroundColor: "#0a4f6e",
+          titleColor: "#fff",
+          bodyColor: "#fff",
+          padding: 10,
+          callbacks: {
+            label: (item) => {
+              const total = item.chart.data.datasets.reduce((s, d) => s + d.data[0], 0);
+              const pct = total ? Math.round((item.raw / total) * 100) : 0;
+              return `${item.dataset.label}: ${pct}% (${sym}${formatNum(item.raw, 2)})`;
+            },
+          },
+        },
+      },
+    },
+  });
 }
 
 // ================================================================
