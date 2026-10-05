@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free your knowledge</title>
+<meta name="description" content="Check which of your articles are stuck behind a paywall, and what it would cost to read them all.">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="./" data-i18n="title">Free your knowledge</a>
+    <nav class="top-links">
+      <a href="../">Publication Cost Calculator</a>
+      <div class="lang-toggle" role="group" aria-label="Language / Sprache">
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="de">DE</button>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero">
+    <h1 data-i18n="title">Free your knowledge</h1>
+    <p class="subtitle" data-i18n="subtitle">Check which of your articles are stuck behind a paywall</p>
+  </section>
+
+  <section class="card input-card">
+    <label for="refs" class="lbl" data-i18n="refs_label">Paste your reference list</label>
+    <textarea id="refs" rows="9" spellcheck="false" data-i18n-placeholder="refs_placeholder"></textarea>
+
+    <div class="email-row">
+      <label for="email" class="lbl-sm"><span data-i18n="email_label">E-mail for API access</span> <span class="opt" data-i18n="optional">(optional)</span></label>
+      <input id="email" type="email" autocomplete="email" placeholder="you@university.edu">
+      <p class="hint" data-i18n="email_hint"></p>
+    </div>
+
+    <div class="actions">
+      <button id="go" class="btn-primary" type="button" data-i18n="go">Check my articles</button>
+      <button id="example" class="btn-ghost" type="button" data-i18n="example">Try an example</button>
+    </div>
+  </section>
+
+  <section id="progress-wrap" class="card hidden">
+    <div class="progress-label" id="progress-label"></div>
+    <div class="bar"><div id="bar-fill"></div></div>
+  </section>
+
+  <section id="results" class="hidden">
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-label" data-i18n="stat_found">Articles found</div>
+        <div class="stat-value" id="s-found">-</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label" data-i18n="stat_free">Freely available</div>
+        <div class="stat-value" id="s-free">-</div>
+      </div>
+    </div>
+
+    <div class="cost-banner">
+      <div class="cost-lead" data-i18n="cost_lead">Your research costs about</div>
+      <div class="cost-value" id="s-cost">-</div>
+      <div class="cost-sub" id="s-cost-sub"></div>
+    </div>
+
+    <div class="card">
+      <div class="list-head">
+        <h2><span data-i18n="paywalled_h">Still behind a paywall</span> <span class="count" id="n-paywalled"></span></h2>
+        <button id="csv" class="btn-ghost" type="button" data-i18n="csv">Download CSV</button>
+      </div>
+      <p class="hint" id="paywall-hint"></p>
+      <ul id="paywalled-list" class="art-list"></ul>
+    </div>
+
+    <details class="card details-card" id="free-details">
+      <summary><span data-i18n="free_h">Already freely available</span> (<span id="n-free"></span>)</summary>
+      <ul id="free-list" class="art-list"></ul>
+    </details>
+
+    <details class="card details-card" id="nf-details">
+      <summary><span data-i18n="nf_h">Could not be matched</span> (<span id="n-nf"></span>)</summary>
+      <p class="hint" data-i18n="nf_hint"></p>
+      <ul id="nf-list" class="art-list"></ul>
+    </details>
+
+  </section>
+
+  <section class="faq">
+    <h2 data-i18n="faq_h">FAQ</h2>
+
+    <details open>
+      <summary data-i18n="faq1_q"></summary>
+      <div data-i18n-html="faq1_a"></div>
+    </details>
+
+    <details>
+      <summary data-i18n="faq2_q"></summary>
+      <div data-i18n-html="faq2_a"></div>
+    </details>
+
+    <details>
+      <summary data-i18n="faq3_q"></summary>
+      <div data-i18n-html="faq3_a"></div>
+      <div class="table-wrap"><table class="price-table" id="price-table"></table></div>
+      <p class="hint" id="default-price"></p>
+    </details>
+
+    <details>
+      <summary data-i18n="faq4_q"></summary>
+      <div data-i18n-html="faq4_a"></div>
+    </details>
+
+    <details>
+      <summary data-i18n="faq5_q"></summary>
+      <div data-i18n-html="faq5_a"></div>
+    </details>
+  </section>
+
+</main>
+
+<footer class="foot wrap">
+  <p data-i18n-html="footer"></p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
