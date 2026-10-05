@@ -69,6 +69,16 @@ const TR = {
   csv: { en: "Download CSV", de: "CSV herunterladen" },
   free_h: { en: "Already freely available", de: "Bereits frei verfügbar" },
   nf_h: { en: "Could not be matched", de: "Nicht gefunden" },
+  cost_sub_unk: {
+    en: "The open-access services did not answer, so no price can be estimated yet. Please try again in a minute.",
+    de: "Die Open-Access-Dienste haben nicht geantwortet, daher kann noch kein Preis geschätzt werden. Bitte versuche es in einer Minute erneut.",
+  },
+  cost_sub_plus_unk: { en: "{n} article(s) could not be checked and are not included.", de: "{n} Artikel konnten nicht geprüft werden und sind nicht enthalten." },
+  unk_h: { en: "Could not be checked", de: "Konnte nicht geprüft werden" },
+  unk_hint: {
+    en: "These articles were found, but the open-access services did not answer (usually a rate limit). They are not counted above. Try again in a minute, ideally with your e-mail address filled in.",
+    de: "Diese Artikel wurden gefunden, aber die Open-Access-Dienste haben nicht geantwortet (meist ein Anfragelimit). Sie zählen oben nicht mit. Versuche es in einer Minute erneut, am besten mit eingetragener E-Mail-Adresse.",
+  },
   nf_hint: {
     en: "These references were not found in Crossref/OpenAlex, so they are not counted in the totals above. Adding the DOI to the line usually fixes it.",
     de: "Diese Referenzen wurden in Crossref/OpenAlex nicht gefunden und zählen daher nicht in die Summen oben. Meist hilft es, die DOI zur Zeile hinzuzufügen.",
@@ -272,11 +282,11 @@ function titleMatches(title, ref) {
 }
 
 /* ---------- API calls ---------- */
-async function fetchRetry(url, retries = 2) {
+async function fetchRetry(url, retries = 4) {
   for (let i = 0; ; i++) {
     const res = await fetch(url);
     if (res.status !== 429 || i >= retries) return res;
-    await sleep(700 * (i + 1));
+    await sleep(1000 * (i + 1));
   }
 }
 
@@ -332,7 +342,8 @@ async function checkReference(ref, email) {
   if (!doi) return { ref, found: false };
 
   let work = null;
-  try { work = await openAlexWork(doi, email); } catch (e) { work = null; }
+  let oaError = false; // OpenAlex unreachable or rate-limited: OA status is then unknown, not "closed"
+  try { work = await openAlexWork(doi, email); } catch (e) { oaError = true; }
 
   let title, year, journal, publisher, free = false, freeUrl = null, oaStatus = null;
   if (work) {
@@ -354,12 +365,14 @@ async function checkReference(ref, email) {
     journal = (cr["container-title"] || [])[0] || null;
     publisher = cr.publisher || null;
   }
+  let unknown = false;
   if (!free) {
     const up = await unpaywall(doi, email);
     if (up && !up.closed) { free = true; freeUrl = up.url; oaStatus = oaStatus || "unpaywall"; }
+    else if (oaError && !(up && up.closed)) unknown = true;
   }
-  const price = free ? null : priceFor(publisher);
-  return { ref, found: true, doi, title: title || ref, year, journal, publisher, free, freeUrl, oaStatus, price };
+  const price = free || unknown ? null : priceFor(publisher);
+  return { ref, found: true, unknown, doi, title: title || ref, year, journal, publisher, free, freeUrl, oaStatus, price };
 }
 
 /* ---------- run ---------- */
@@ -389,7 +402,7 @@ async function run() {
     $("bar-fill").style.width = (100 * done / refs.length) + "%";
   };
   tick();
-  await pool(refs, 4, async (ref, i) => {
+  await pool(refs, 3, async (ref, i) => {
     try { results[i] = await checkReference(ref, email); }
     catch (e) { results[i] = { ref, found: false, error: true }; }
     done++; tick();
@@ -412,16 +425,21 @@ function metaLine(r) {
 function render(scroll = true) {
   const total = results.length;
   const found = results.filter((r) => r.found);
-  const free = found.filter((r) => r.free);
-  const paywalled = found.filter((r) => !r.free).sort((a, b) => b.price.eur - a.price.eur);
+  const unknownList = found.filter((r) => r.unknown);
+  const checked = found.filter((r) => !r.unknown);
+  const free = checked.filter((r) => r.free);
+  const paywalled = checked.filter((r) => !r.free).sort((a, b) => b.price.eur - a.price.eur);
   const notFound = results.filter((r) => !r.found);
   const cost = paywalled.reduce((s, r) => s + r.price.eur, 0);
 
   $("s-found").textContent = found.length + " " + t("of") + " " + total;
-  const pct = found.length ? Math.round((100 * free.length) / found.length) : 0;
-  $("s-free").replaceChildren(free.length + " " + t("of") + " " + found.length + " ", el("small", { text: "(" + pct + "%)" }));
-  $("s-cost").textContent = money(cost);
-  $("s-cost-sub").textContent = paywalled.length ? t("cost_sub_some", { n: paywalled.length }) : t("cost_sub_none");
+  const pct = checked.length ? Math.round((100 * free.length) / checked.length) : 0;
+  $("s-free").replaceChildren(free.length + " " + t("of") + " " + checked.length + " ", el("small", { text: "(" + pct + "%)" }));
+  $("s-cost").textContent = checked.length ? money(cost) : "\u2013";
+  let sub = !checked.length && unknownList.length ? t("cost_sub_unk")
+    : paywalled.length ? t("cost_sub_some", { n: paywalled.length }) : t("cost_sub_none");
+  if (checked.length && unknownList.length) sub += " " + t("cost_sub_plus_unk", { n: unknownList.length });
+  $("s-cost-sub").textContent = sub;
 
   $("n-paywalled").textContent = "(" + paywalled.length + ")";
   $("paywall-hint").textContent = paywalled.length ? t("paywall_hint") : "";
@@ -441,6 +459,11 @@ function render(scroll = true) {
       el("div", { class: "art-meta", text: metaLine(r) }), links);
   }));
 
+  $("n-unk").textContent = unknownList.length;
+  $("unk-details").classList.toggle("hidden", !unknownList.length);
+  $("unk-list").replaceChildren(...unknownList.map((r) => el("li", {}, el("div", { class: "art-title", text: r.title }),
+    el("div", { class: "art-meta", text: metaLine(r) }), el("div", { class: "art-links" }, doiLink(r.doi)))));
+
   $("n-nf").textContent = notFound.length;
   $("nf-details").classList.toggle("hidden", !notFound.length);
   $("nf-list").replaceChildren(...notFound.map((r) => el("li", {}, el("div", { class: "raw", text: r.ref }))));
@@ -458,7 +481,7 @@ function csvCell(v) {
 function downloadCsv() {
   const head = ["status", "title", "year", "journal", "publisher", "doi", "estimated_price_eur", "free_version_url", "reference"];
   const rows = results.map((r) => [
-    !r.found ? "not found" : r.free ? "free" : "paywalled",
+    !r.found ? "not found" : r.unknown ? "unchecked" : r.free ? "free" : "paywalled",
     r.title, r.year, r.journal, r.publisher, r.doi, r.price ? r.price.eur : "", r.freeUrl, r.ref,
   ]);
   const csv = "﻿" + [head, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
@@ -491,7 +514,7 @@ function articlesBlock(paywalled) {
 }
 
 function buildMessage(force) {
-  const paywalled = results.filter((r) => r.found && !r.free).sort((a, b) => b.price.eur - a.price.eur);
+  const paywalled = results.filter((r) => r.found && !r.unknown && !r.free).sort((a, b) => b.price.eur - a.price.eur);
   $("msg-section").classList.toggle("hidden", !paywalled.length);
   if (!paywalled.length || (msgDirty && !force)) return;
   $("msg-text").value = t(msgMode === "first" ? "tpl_first" : "tpl_not").replace("{articles}", () => articlesBlock(paywalled));
@@ -499,7 +522,7 @@ function buildMessage(force) {
 }
 
 function refreshMoney() {
-  document.querySelectorAll(".cur-btn").forEach((b) => b.classList.toggle("active", b.dataset.cur === cur));
+  $("currency-select").value = cur;
   document.querySelectorAll(".mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === msgMode));
   buildPriceTable();
   if (results.length && !$("results").classList.contains("hidden")) render(false);
@@ -520,11 +543,25 @@ document.querySelectorAll(".lang-btn").forEach((b) => b.addEventListener("click"
   try { localStorage.setItem("fyk-lang", lang); } catch (e) { /* ignore */ }
   applyLang();
 }));
-document.querySelectorAll(".cur-btn").forEach((b) => b.addEventListener("click", () => {
-  cur = b.dataset.cur;
-  try { localStorage.setItem("fyk-cur", cur); } catch (e) { /* ignore */ }
+$("currency-select").addEventListener("change", (e) => {
+  cur = e.target.value === "USD" ? "USD" : "EUR";
+  try { localStorage.setItem("fyk-cur", cur); } catch (e2) { /* ignore */ }
   refreshMoney();
-}));
+});
+
+/* theme: same storage key and default as the Publication Cost Calculator */
+const ICON_SUN = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
+const ICON_MOON = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+function applyTheme(th) {
+  document.documentElement.setAttribute("data-theme", th);
+  $("theme-btn").innerHTML = th === "dark" ? ICON_SUN : ICON_MOON;
+}
+applyTheme(document.documentElement.getAttribute("data-theme") || "dark");
+$("theme-btn").addEventListener("click", () => {
+  const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  try { localStorage.setItem("theme", next); } catch (e) { /* ignore */ }
+  applyTheme(next);
+});
 document.querySelectorAll(".mode-btn").forEach((b) => b.addEventListener("click", () => {
   msgMode = b.dataset.mode;
   refreshMoney();

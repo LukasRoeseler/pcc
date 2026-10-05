@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=tabs1">
 </head>
 <body>
 
@@ -28,7 +28,10 @@
 
 <div class="settings-bar">
   <div class="wrap settings-bar-row">
-    <a href="index.html" class="app-name-link" id="app-name-link">Publication Cost Calculator</a>
+    <nav class="app-tabs" aria-label="Apps">
+      <a href="./" class="app-tab active" aria-current="page">Publication Cost Calculator</a>
+      <a href="paywall/" class="app-tab">Paywall Checker</a>
+    </nav>
     <div class="settings-bar-controls">
       <button type="button" class="icon-btn" id="theme-btn" aria-label="Toggle light or dark theme"></button>
       <div class="lang-toggle" id="lang-toggle" role="group" aria-label="Language / Sprache">

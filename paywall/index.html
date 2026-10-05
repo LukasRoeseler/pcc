@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,30 +9,38 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+<script>try{document.documentElement.setAttribute("data-theme",localStorage.getItem("theme")||"dark")}catch(e){}</script>
+<link rel="stylesheet" href="../style.css?v=tabs1">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header class="top">
-  <div class="wrap top-row">
-    <a class="brand" href="./" data-i18n="title">Free your knowledge</a>
-    <nav class="top-links">
-      <a href="../">Publication Cost Calculator</a>
-      <div class="lang-toggle" role="group" aria-label="Currency / Währung">
-        <button type="button" class="cur-btn" data-cur="EUR">&euro; EUR</button>
-        <button type="button" class="cur-btn" data-cur="USD">$ USD</button>
-      </div>
+<div class="settings-bar">
+  <div class="wrap settings-bar-row">
+    <nav class="app-tabs" aria-label="Apps">
+      <a href="../" class="app-tab">Publication Cost Calculator</a>
+      <a href="./" class="app-tab active" aria-current="page">Paywall Checker</a>
+    </nav>
+    <div class="settings-bar-controls">
+      <button type="button" class="icon-btn" id="theme-btn" aria-label="Toggle light or dark theme"></button>
       <div class="lang-toggle" role="group" aria-label="Language / Sprache">
         <button type="button" class="lang-btn" data-lang="en">EN</button>
         <button type="button" class="lang-btn" data-lang="de">DE</button>
       </div>
-    </nav>
+      <div class="currency-toggle">
+        <label for="currency-select" class="visually-hidden">Currency</label>
+        <select id="currency-select" aria-label="Currency">
+          <option value="EUR">&euro; EUR</option>
+          <option value="USD">$ USD</option>
+        </select>
+      </div>
+    </div>
   </div>
-</header>
+</div>
 
 <main class="wrap">
 
-  <section class="hero">
+  <section class="hero welcome-state">
     <h1 data-i18n="title">Free your knowledge</h1>
     <p class="subtitle" data-i18n="subtitle">Check which of your articles are stuck behind a paywall</p>
   </section>
@@ -49,7 +57,7 @@
 
     <div class="actions">
       <button id="go" class="btn-primary" type="button" data-i18n="go">Check my articles</button>
-      <button id="example" class="btn-ghost" type="button" data-i18n="example">Try an example</button>
+      <button id="example" class="btn-secondary" type="button" data-i18n="example">Try an example</button>
     </div>
   </section>
 
@@ -60,14 +68,14 @@
 
   <section id="results" class="hidden">
 
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-label" data-i18n="stat_found">Articles found</div>
-        <div class="stat-value" id="s-found">-</div>
+    <div class="pw-stats">
+      <div class="pw-stat">
+        <div class="pw-stat-label" data-i18n="stat_found">Articles found</div>
+        <div class="pw-stat-value" id="s-found">-</div>
       </div>
-      <div class="stat">
-        <div class="stat-label" data-i18n="stat_free">Freely available</div>
-        <div class="stat-value" id="s-free">-</div>
+      <div class="pw-stat">
+        <div class="pw-stat-label" data-i18n="stat_free">Freely available</div>
+        <div class="pw-stat-value" id="s-free">-</div>
       </div>
     </div>
 
@@ -80,7 +88,7 @@
     <div class="card">
       <div class="list-head">
         <h2><span data-i18n="paywalled_h">Still behind a paywall</span> <span class="count" id="n-paywalled"></span></h2>
-        <button id="csv" class="btn-ghost" type="button" data-i18n="csv">Download CSV</button>
+        <button id="csv" class="btn-secondary" type="button" data-i18n="csv">Download CSV</button>
       </div>
       <p class="hint" id="paywall-hint"></p>
       <ul id="paywalled-list" class="art-list"></ul>
@@ -89,6 +97,12 @@
     <details class="card details-card" id="free-details">
       <summary><span data-i18n="free_h">Already freely available</span> (<span id="n-free"></span>)</summary>
       <ul id="free-list" class="art-list"></ul>
+    </details>
+
+    <details class="card details-card" id="unk-details">
+      <summary><span data-i18n="unk_h">Could not be checked</span> (<span id="n-unk"></span>)</summary>
+      <p class="hint" data-i18n="unk_hint"></p>
+      <ul id="unk-list" class="art-list"></ul>
     </details>
 
     <details class="card details-card" id="nf-details">
@@ -146,8 +160,10 @@
 
 </main>
 
-<footer class="foot wrap">
-  <p data-i18n-html="footer"></p>
+<footer class="site-footer">
+  <div class="wrap">
+    <p data-i18n-html="footer"></p>
+  </div>
 </footer>
 
 <script src="app.js"></script>

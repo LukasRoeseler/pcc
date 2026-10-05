@@ -850,3 +850,20 @@ tr.excluded-row .cell-cost { text-decoration: line-through; }
 
   th, td { padding: 7px 6px; font-size: 0.78rem; }
 }
+
+/* ---------- app tabs (shared with /paywall) ---------- */
+.app-tabs { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.app-tab {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+.app-tab:hover { color: var(--primary); background: var(--primary-faint); }
+.app-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+@media (max-width: 640px) { .app-tab { font-size: 12px; padding: 5px 7px; } }
