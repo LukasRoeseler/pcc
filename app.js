@@ -121,7 +121,7 @@ const TRANSLATIONS = {
   compare_stat_avg_all: { en: "Avg. per article", de: "Ø pro Artikel" },
   compare_stat_avg_paid: { en: "Avg. per paid article", de: "Ø pro bezahltem Artikel" },
   compare_stat_determined: { en: "Determined costs", de: "Bestimmte Kosten" },
-  compare_stat_cost_per_citation: { en: "Cost per citation", de: "Kosten pro Zitation" },
+  compare_stat_cost_per_citation: { en: "Cost per log-citation", de: "Kosten pro Log-Zitation" },
   compare_stat_cost_per_year: { en: "Cost per year", de: "Kosten pro Jahr" },
   compare_stat_oa_share: { en: "Open access share", de: "Open-Access-Anteil" },
   compare_first_author_toggle_label: { en: "Count first-authorship works only", de: "Nur Erstautorenschaften einrechnen" },
@@ -202,8 +202,8 @@ const TRANSLATIONS = {
   orcid_search_no_institution: { en: "No institution listed", de: "Keine Institution angegeben" },
   share_label: { en: "Share these numbers", de: "Diese Zahlen teilen" },
   share_message: {
-    en: "The publication costs of works by {name} are estimated to be {cost}. With {citations} citations, that makes an average cost of {costPerCitation} per citation. Find out what your research costs at https://lukasroeseler.github.io/pcc/.",
-    de: "Die Publikationskosten der Werke von {name} werden auf {cost} geschätzt. Bei {citations} Zitationen ergibt das durchschnittliche Kosten von {costPerCitation} pro Zitation. Finden Sie heraus, was Ihre Forschung kostet: https://lukasroeseler.github.io/pcc/.",
+    en: "The publication costs of works by {name} are estimated to be {cost}. With {citations} citations in total, that makes {costPerCitation} per log-citation (money per order of magnitude of citations). Find out what your research costs at https://lukasroeseler.github.io/pcc/.",
+    de: "Die Publikationskosten der Werke von {name} werden auf {cost} geschätzt. Bei insgesamt {citations} Zitationen ergibt das {costPerCitation} pro Log-Zitation (Geld pro Größenordnung an Zitationen). Finden Sie heraus, was Ihre Forschung kostet: https://lukasroeseler.github.io/pcc/.",
   },
   progress_title: { en: "Processing…", de: "Verarbeitung…" },
   progress_label: { en: "{done} / {total} processed", de: "{done} / {total} verarbeitet" },
@@ -212,7 +212,7 @@ const TRANSLATIONS = {
   stat_avg_all: { en: "Average per article (all determined)", de: "Ø pro Artikel (alle bestimmten)" },
   stat_avg_paid: { en: "Average per article with an APC > 0", de: "Ø pro Artikel mit APC > 0" },
   stat_determined: { en: "Articles with a determined cost", de: "Artikel mit bestimmten Kosten" },
-  stat_cost_per_citation: { en: "Cost per citation", de: "Kosten pro Zitation" },
+  stat_cost_per_citation: { en: "Cost per log-citation (log₁₀)", de: "Kosten pro Log-Zitation (log₁₀)" },
   stat_cost_per_year: { en: "Cost per year since first publication", de: "Kosten pro Jahr seit der ersten Publikation" },
   chart_title_hist: { en: "Cost distribution", de: "Kostenverteilung" },
   chart_caption_hist: {
@@ -410,10 +410,10 @@ const TRANSLATIONS = {
     en: 'A weighted count of online attention (news, blogs, social media, policy documents, etc.) an article received. A higher score is not automatically "better"; it reflects visibility, not quality, in the spirit of DORA\'s caution against equating attention metrics with research value.',
     de: 'Eine gewichtete Kennzahl der Online-Aufmerksamkeit (Nachrichten, Blogs, soziale Medien, politische Dokumente usw.), die ein Artikel erhalten hat. Ein höherer Wert ist nicht automatisch "besser", er spiegelt Sichtbarkeit wider, nicht Qualität, ganz im Sinne von DORAs Warnung davor, Aufmerksamkeitskennzahlen mit wissenschaftlichem Wert gleichzusetzen.',
   },
-  glossary_cost_per_citation_term: { en: "Cost per citation", de: "Kosten pro Zitation" },
+  glossary_cost_per_citation_term: { en: "Cost per log-citation", de: "Kosten pro Log-Zitation" },
   glossary_cost_per_citation_def: {
-    en: "Total APC spending divided by total citations received: a rough efficiency indicator (a lower number can mean more citation impact per unit of currency spent).",
-    de: "Gesamte APC-Ausgaben geteilt durch die Gesamtzahl der Zitationen: ein grober Effizienz-Indikator (ein niedrigerer Wert kann mehr Zitationswirkung pro ausgegebener Währungseinheit bedeuten).",
+    en: "Citation counts are extremely skewed: one hit paper can outweigh hundreds of others, so total cost divided by total citations mostly reflects that single paper. Instead, each work contributes log10(1 + citations) (0 citations = 0, 9 = 1, 99 = 2, 999 = 3), and this indicator is total APC spending (including on uncited works) divided by the sum of these values. Read it as the money spent per order of magnitude of citations: a lower number means more citation magnitude per unit of currency, and one extra blockbuster citation count moves it far less than it moves a raw average.",
+    de: "Zitationszahlen sind extrem schief verteilt: ein einzelner Spitzenartikel kann Hunderte andere aufwiegen, sodass Gesamtkosten geteilt durch Gesamtzitationen vor allem diesen einen Artikel widerspiegeln. Stattdessen trägt jedes Werk log10(1 + Zitationen) bei (0 Zitationen = 0, 9 = 1, 99 = 2, 999 = 3), und dieser Indikator ist die gesamte APC-Ausgabe (auch für unzitierte Werke) geteilt durch die Summe dieser Werte. Lesen Sie ihn als Geld pro Größenordnung an Zitationen: ein niedrigerer Wert bedeutet mehr Zitationsgrößenordnung pro Währungseinheit, und ein einzelner Ausreißer verändert ihn weit weniger als einen rohen Durchschnitt.",
   },
   glossary_first_author_term: { en: "First-authorship filter", de: "Erstautorenschafts-Filter" },
   glossary_first_author_def: {
@@ -1715,7 +1715,7 @@ const SHARE_TOOL_URL = "https://lukasroeseler.github.io/pcc/";
 function buildShareMessage(stats) {
   const sym = CURRENCY_SYMBOLS[currentCurrency];
   const name = candidateName || `ORCID ${candidateOrcidId}`;
-  const costPerCitation = stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "n/a";
+  const costPerCitation = stats.costPerLogCitation != null ? sym + formatNum(stats.costPerLogCitation, 2) : "n/a";
   return t("share_message", {
     name,
     cost: sym + formatNum(stats.totalCost, 2),
@@ -1779,10 +1779,16 @@ function computeKpiStats(finished) {
   const paidOnly = determinedConverted.filter((c) => c > 0);
   const avgPaid = paidOnly.length ? paidOnly.reduce((s, c) => s + c, 0) / paidOnly.length : 0;
 
-  const withBoth = determined.filter((r) => r.citedByCount != null && r.citedByCount > 0);
-  const totalCostForCitations = withBoth.reduce((s, r) => s + convertCost(r.cost), 0);
-  const totalCitations = withBoth.reduce((s, r) => s + r.citedByCount, 0);
-  const costPerCitation = totalCitations > 0 ? totalCostForCitations / totalCitations : null;
+  // Citations are extremely skewed (one hit paper can outweigh hundreds of others),
+  // so dividing total cost by raw total citations says more about the single most-cited
+  // work than about the portfolio. Instead each work contributes log10(1 + citations)
+  // ("citation magnitude": 0 cites = 0, 9 = 1, 99 = 2, 999 = 3), and every priced work's
+  // cost counts, including uncited ones. The KPI is money per unit of citation magnitude.
+  const withCitations = determined.filter((r) => r.citedByCount != null);
+  const totalCostForCitations = withCitations.reduce((s, r) => s + convertCost(r.cost), 0);
+  const totalCitations = withCitations.reduce((s, r) => s + r.citedByCount, 0);
+  const totalLogCitations = withCitations.reduce((s, r) => s + Math.log10(1 + r.citedByCount), 0);
+  const costPerLogCitation = totalLogCitations > 0 ? totalCostForCitations / totalLogCitations : null;
 
   const years = finished.map((r) => r.publicationYear).filter((y) => y != null);
   const earliestYear = years.length ? Math.min(...years) : null;
@@ -1801,7 +1807,7 @@ function computeKpiStats(finished) {
     totalCost,
     avgAll,
     avgPaid,
-    costPerCitation,
+    costPerLogCitation,
     costPerYear,
     openAccessShare,
     totalCitations,
@@ -1865,7 +1871,7 @@ function updateSummary() {
   animateStatNumber("avgAll", document.getElementById("stat-avg-all"), stats.avgAll, (v) => sym + formatNum(v, 2));
   animateStatNumber("avgPaid", document.getElementById("stat-avg-paid"), stats.avgPaid, (v) => sym + formatNum(v, 2));
   animateStatNumber("determinedCount", document.getElementById("stat-determined"), stats.determinedCount, (v) => `${formatNum(v, 0)} / ${formatNum(stats.finishedCount, 0)}`);
-  animateStatNumber("costPerCitation", document.getElementById("stat-cost-per-citation"), stats.costPerCitation, (v) => sym + formatNum(v, 2));
+  animateStatNumber("costPerLogCitation", document.getElementById("stat-cost-per-citation"), stats.costPerLogCitation, (v) => sym + formatNum(v, 2));
   animateStatNumber("costPerYear", document.getElementById("stat-cost-per-year"), stats.costPerYear, (v) => sym + formatNum(v, 2));
 
   renderHistogram(stats.determinedConverted);
@@ -3130,7 +3136,7 @@ renderExportTable();
     <div class="stat"><b>${sym}${formatNum(stats.avgAll, 2)}</b><span>${t("stat_avg_all")}</span></div>
     <div class="stat"><b>${sym}${formatNum(stats.avgPaid, 2)}</b><span>${t("stat_avg_paid")}</span></div>
     <div class="stat"><b>${formatNum(stats.determinedCount, 0)} / ${formatNum(stats.finishedCount, 0)}</b><span>${t("stat_determined")}</span></div>
-    <div class="stat"><b>${stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "–"}</b><span>${t("stat_cost_per_citation")}</span></div>
+    <div class="stat"><b>${stats.costPerLogCitation != null ? sym + formatNum(stats.costPerLogCitation, 2) : "–"}</b><span>${t("stat_cost_per_citation")}</span></div>
     <div class="stat"><b>${stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–"}</b><span>${t("stat_cost_per_year")}</span></div>
   </div>
   ${firstAuthorOnly ? `<p class="first-author-note">${escapeHtml(t(filterActive() ? "first_author_active_note" : "first_author_missing_orcid"))}</p>` : ""}
@@ -3382,7 +3388,7 @@ function renderCompareColumn(kpi, statusText) {
     [t("compare_stat_avg_paid"), sym + formatNum(stats.avgPaid, 2)],
     [t("compare_stat_determined"), `${formatNum(stats.determinedCount, 0)} / ${formatNum(stats.finishedCount, 0)}`],
     [t("compare_stat_oa_share"), stats.openAccessShare != null ? formatNum(stats.openAccessShare * 100, 0) + "%" : "–"],
-    [t("compare_stat_cost_per_citation"), stats.costPerCitation != null ? sym + formatNum(stats.costPerCitation, 2) : "–"],
+    [t("compare_stat_cost_per_citation"), stats.costPerLogCitation != null ? sym + formatNum(stats.costPerLogCitation, 2) : "–"],
     [t("compare_stat_cost_per_year"), stats.costPerYear != null ? sym + formatNum(stats.costPerYear, 2) : "–"],
   ];
   const firstAuthorNote = compareFirstAuthorOnly ? `<p class="compare-column-sub">${escapeHtml(t("compare_first_author_note"))}</p>` : "";

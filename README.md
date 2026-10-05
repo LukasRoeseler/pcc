@@ -1,7 +1,7 @@
 # Publication Cost Calculator
 
 A static, client-side web tool that estimates the article processing charges
-(APCs) behind a reference list: total cost, average cost, cost per citation,
+(APCs) behind a reference list: total cost, average cost, cost per log-citation (money per order of magnitude of citations, robust to skewed counts),
 cost per year since your first publication, a cost-distribution histogram,
 two citation-impact scatter plots, an open-access type breakdown (overall
 and by year), a total-cost-by-OA-type chart, a citations-by-cost-tier chart,
