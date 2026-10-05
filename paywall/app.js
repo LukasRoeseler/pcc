@@ -107,6 +107,67 @@ const TR = {
     en: "<p>You may be reading it through your library's subscription, which is invisible to these services. Also, a free copy might exist but not yet be indexed, or the match may be wrong. Check the DOI link in the list, and consider uploading your version yourself, so that everyone else can read it too.</p>",
     de: "<p>Vielleicht liest du ihn über das Abonnement deiner Bibliothek, das diese Dienste nicht sehen. Außerdem kann es eine freie Kopie geben, die noch nicht indexiert ist, oder der Treffer ist falsch. Prüfe den DOI-Link in der Liste und überlege, deine Version selbst hochzuladen, damit sie alle anderen auch lesen können.</p>",
   },
+  msg_h: { en: "Message to your co-authors", de: "Nachricht an deine Co-Autor:innen" },
+  msg_hint: {
+    en: "A ready-made text for colleagues. It lists your paywalled articles; edit it as you like, then copy it into an e-mail. Pick the version that fits your role.",
+    de: "Ein fertiger Text für Kolleg:innen. Er listet deine Artikel hinter der Paywall auf; passe ihn nach Belieben an und kopiere ihn in eine E-Mail. Wähle die Version, die zu deiner Rolle passt.",
+  },
+  msg_mode_not: { en: "I am not first author", de: "Ich bin nicht Erstautor:in" },
+  msg_mode_first: { en: "I am first author", de: "Ich bin Erstautor:in" },
+  msg_copy: { en: "Copy text", de: "Text kopieren" },
+  msg_copied: { en: "Copied!", de: "Kopiert!" },
+  tpl_not: {
+    en: `Dear [Name],
+
+I am going through the research articles I contributed to and noticed that the following ones are behind a paywall (found with this web app: https://lukasroeseler.github.io/pcc/paywall/):
+
+{articles}
+
+Since you are first author on these papers, could you please upload the accepted version of each as a preprint to a non-profit server (for example PsyArXiv/OSF, arXiv or Zenodo)? This is usually in line with the journals' policies as long as the link to the published version (DOI) is included; the policy links above show the details for each journal. If you prefer, I am happy to upload the preprints myself with your permission and make us both admins.
+
+Right now, anyone whose university does not pay for an expensive subscription cannot read these articles. Once the preprint is online, tools like Unpaywall (https://unpaywall.org) point interested readers straight to the identical free version.
+
+Best wishes
+[Your name]`,
+    de: `Liebe*r [Name],
+
+ich gehe gerade die Forschungsartikel durch, an denen ich beteiligt war, und habe gesehen, dass die folgenden Artikel hinter einer Paywall stehen (gefunden mit dieser Web-App: https://lukasroeseler.github.io/pcc/paywall/):
+
+{articles}
+
+Da du bei diesen Artikeln Erstautor*in bist, möchte ich dich bitten, jeweils die akzeptierte Version als Preprint auf einem gemeinnützigen Server hochzuladen (z. B. PsyArXiv/OSF, arXiv oder Zenodo). Das ist in der Regel mit den Policies der Zeitschriften vereinbar, solange der Link zur veröffentlichten Version (DOI) angegeben wird; die Links oben zeigen die Details je Zeitschrift. Wenn du möchtest, lade ich die Preprints mit deiner Erlaubnis gern selbst hoch und weise uns beiden Admin-Rechte zu.
+
+Aktuell kommt man, wenn die eigene Uni keine teure Subscription hat, nicht an diese Artikel. Sobald das Preprint online ist, leiten Tools wie Unpaywall (https://unpaywall.org) Interessierte direkt zur inhaltsgleichen freien Version.
+
+Viele Grüße
+[Dein Name]`,
+  },
+  tpl_first: {
+    en: `Dear [Name],
+
+I am going through the research articles we worked on together and noticed that the following ones are behind a paywall (found with this web app: https://lukasroeseler.github.io/pcc/paywall/):
+
+{articles}
+
+As first author, I have uploaded the accepted version of each as a preprint to [preprint server, e.g. PsyArXiv], with a link to the published version (DOI). This is in line with the journals' policies (see the policy links above). Preprint links: [insert links]. I have added you as a contributor so you can see and edit the entries. If you have any concerns or would like something changed, just let me know.
+
+Right now, anyone whose university does not pay for an expensive subscription cannot read these articles. With the preprint online, tools like Unpaywall (https://unpaywall.org) point interested readers straight to the identical free version.
+
+Best wishes
+[Your name]`,
+    de: `Liebe*r [Name],
+
+ich gehe gerade die Forschungsartikel durch, an denen wir gemeinsam gearbeitet haben, und habe gesehen, dass die folgenden Artikel hinter einer Paywall stehen (gefunden mit dieser Web-App: https://lukasroeseler.github.io/pcc/paywall/):
+
+{articles}
+
+Als Erstautor*in habe ich jeweils die akzeptierte Version als Preprint auf [Preprint-Server, z. B. PsyArXiv] hochgeladen, mit Verweis auf die veröffentlichte Version (DOI). Das ist mit den Policies der Zeitschriften vereinbar (siehe Policy-Links oben). Links zu den Preprints: [Links einfügen]. Ich habe dich als Mitwirkende*n hinzugefügt, damit du die Einträge einsehen und bearbeiten kannst. Wenn du Bedenken hast oder etwas geändert haben möchtest, sag mir bitte kurz Bescheid.
+
+Aktuell kommt man, wenn die eigene Uni keine teure Subscription hat, nicht an diese Artikel. Mit dem Preprint leiten Tools wie Unpaywall (https://unpaywall.org) Interessierte direkt zur inhaltsgleichen freien Version.
+
+Viele Grüße
+[Dein Name]`,
+  },
   footer: {
     en: 'Part of the <a href="../">Publication Cost Calculator</a>. Looking for a game? Try the ' + A("https://t1p.de/unpaywaller", "Unpaywaller") + ".",
     de: 'Teil des <a href="../">Publication Cost Calculator</a>. Lust auf ein Spiel? Probiere den ' + A("https://t1p.de/unpaywaller", "Unpaywaller") + " aus.",
@@ -129,8 +190,8 @@ function applyLang() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach((n) => { n.placeholder = t(n.dataset.i18nPlaceholder); });
   document.querySelectorAll(".lang-btn").forEach((b) => b.classList.toggle("active", b.dataset.lang === lang));
   document.title = t("title");
-  buildPriceTable();
-  if (results.length && !$("results").classList.contains("hidden")) render(false);
+  refreshMoney();
+  buildMessage(true);
 }
 
 function el(tag, attrs, ...kids) {
@@ -144,7 +205,25 @@ function el(tag, attrs, ...kids) {
   return e;
 }
 
-const eur = (n) => n.toLocaleString("en-IE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+let cur = "EUR";
+let usdRate = 1.12; // fallback; replaced by the live ECB rate when available
+try { cur = localStorage.getItem("fyk-cur") === "USD" ? "USD" : "EUR"; } catch (e) { /* ignore */ }
+fetch("https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD")
+  .then((r) => r.json())
+  .then((d) => { if (d && d.rates && d.rates.USD) { usdRate = d.rates.USD; refreshMoney(); } })
+  .catch(() => {});
+
+// all prices are stored in EUR and converted for display
+function money(eurAmount) {
+  if (cur === "USD") return (eurAmount * usdRate).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  return eurAmount.toLocaleString(lang === "de" ? "de-DE" : "en-IE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+}
+
+function opfUrl(journal) {
+  if (!journal) return "https://openpolicyfinder.jisc.ac.uk/";
+  return "https://openpolicyfinder.jisc.ac.uk/search?search=" + encodeURIComponent(journal) +
+    "&per_page=10&publication_page=1&publisher_page=1&funder_page=1";
+}
 
 function priceFor(publisher) {
   const name = publisher || "";
@@ -341,15 +420,15 @@ function render(scroll = true) {
   $("s-found").textContent = found.length + " " + t("of") + " " + total;
   const pct = found.length ? Math.round((100 * free.length) / found.length) : 0;
   $("s-free").replaceChildren(free.length + " " + t("of") + " " + found.length + " ", el("small", { text: "(" + pct + "%)" }));
-  $("s-cost").textContent = eur(cost);
+  $("s-cost").textContent = money(cost);
   $("s-cost-sub").textContent = paywalled.length ? t("cost_sub_some", { n: paywalled.length }) : t("cost_sub_none");
 
   $("n-paywalled").textContent = "(" + paywalled.length + ")";
   $("paywall-hint").textContent = paywalled.length ? t("paywall_hint") : "";
   $("paywalled-list").replaceChildren(...paywalled.map((r) => {
     const links = el("div", { class: "art-links" }, doiLink(r.doi),
-      el("a", { href: "https://openpolicyfinder.jisc.ac.uk/", target: "_blank", rel: "noopener noreferrer", text: t("check_rights") }));
-    const price = el("span", { class: "price", title: r.price.listed ? t("price_listed") : t("price_default"), text: "~" + eur(r.price.eur) });
+      el("a", { href: opfUrl(r.journal), target: "_blank", rel: "noopener noreferrer", text: t("check_rights") }));
+    const price = el("span", { class: "price", title: r.price.listed ? t("price_listed") : t("price_default"), text: "~" + money(r.price.eur) });
     return el("li", {}, el("div", { class: "art-title" }, r.title, price), el("div", { class: "art-meta", text: metaLine(r) }), links);
   }));
 
@@ -367,6 +446,7 @@ function render(scroll = true) {
   $("nf-list").replaceChildren(...notFound.map((r) => el("li", {}, el("div", { class: "raw", text: r.ref }))));
 
   $("results").classList.remove("hidden");
+  buildMessage(false);
   if (scroll) $("results").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -391,9 +471,38 @@ function buildPriceTable() {
   const tbl = $("price-table");
   tbl.replaceChildren(
     el("tr", {}, el("th", { text: t("th_publisher") }), el("th", { text: t("th_price") })),
-    ...PRICES.map((p) => el("tr", {}, el("td", { text: p.name }), el("td", { text: "~" + eur(p.eur) })))
+    ...PRICES.map((p) => el("tr", {}, el("td", { text: p.name }), el("td", { text: "~" + money(p.eur) })))
   );
-  $("default-price").textContent = t("default_price", { p: eur(DEFAULT_PRICE) });
+  $("default-price").textContent = t("default_price", { p: money(DEFAULT_PRICE) });
+}
+
+/* ---------- message to co-authors ---------- */
+let msgMode = "not";
+let msgDirty = false;
+
+function articlesBlock(paywalled) {
+  return paywalled.map((r) => {
+    const meta = metaLine(r);
+    return "* " + r.title + " (~" + money(r.price.eur) + ")\n" +
+      (meta ? "  " + meta + "\n" : "") +
+      "  DOI: https://doi.org/" + r.doi + "\n" +
+      "  " + t("check_rights") + ": " + opfUrl(r.journal);
+  }).join("\n\n");
+}
+
+function buildMessage(force) {
+  const paywalled = results.filter((r) => r.found && !r.free).sort((a, b) => b.price.eur - a.price.eur);
+  $("msg-section").classList.toggle("hidden", !paywalled.length);
+  if (!paywalled.length || (msgDirty && !force)) return;
+  $("msg-text").value = t(msgMode === "first" ? "tpl_first" : "tpl_not").replace("{articles}", () => articlesBlock(paywalled));
+  msgDirty = false;
+}
+
+function refreshMoney() {
+  document.querySelectorAll(".cur-btn").forEach((b) => b.classList.toggle("active", b.dataset.cur === cur));
+  document.querySelectorAll(".mode-btn").forEach((b) => b.classList.toggle("active", b.dataset.mode === msgMode));
+  buildPriceTable();
+  if (results.length && !$("results").classList.contains("hidden")) render(false);
 }
 
 const EXAMPLE = [
@@ -411,4 +520,21 @@ document.querySelectorAll(".lang-btn").forEach((b) => b.addEventListener("click"
   try { localStorage.setItem("fyk-lang", lang); } catch (e) { /* ignore */ }
   applyLang();
 }));
+document.querySelectorAll(".cur-btn").forEach((b) => b.addEventListener("click", () => {
+  cur = b.dataset.cur;
+  try { localStorage.setItem("fyk-cur", cur); } catch (e) { /* ignore */ }
+  refreshMoney();
+}));
+document.querySelectorAll(".mode-btn").forEach((b) => b.addEventListener("click", () => {
+  msgMode = b.dataset.mode;
+  refreshMoney();
+  buildMessage(true);
+}));
+$("msg-text").addEventListener("input", () => { msgDirty = true; });
+$("msg-copy").addEventListener("click", async () => {
+  const ta = $("msg-text");
+  try { await navigator.clipboard.writeText(ta.value); } catch (e) { ta.select(); document.execCommand("copy"); }
+  $("msg-copied").classList.remove("hidden");
+  setTimeout(() => $("msg-copied").classList.add("hidden"), 2000);
+});
 applyLang();
