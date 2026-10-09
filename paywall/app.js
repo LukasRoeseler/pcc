@@ -63,8 +63,8 @@ const TR = {
   cost_sub_none: { en: "Nothing to buy: every article we found is freely available.", de: "Nichts zu kaufen: Jeder gefundene Artikel ist frei verfügbar." },
   paywalled_h: { en: "Still behind a paywall", de: "Noch hinter einer Paywall" },
   paywall_hint: {
-    en: "Sorted by estimated price. Check each journal's preprint policy at Open Policy Finder, then upload the version you may share to a non-profit repository (see FAQ).",
-    de: "Nach geschätztem Preis sortiert. Prüfe die Preprint-Richtlinie jeder Zeitschrift bei Open Policy Finder und lade dann die Version, die du teilen darfst, in ein gemeinnütziges Repositorium hoch (siehe FAQ).",
+    en: "These could not be found as free versions. A PDF may still exist (e.g. on Google Scholar or a preprint server), so use the search links under each article to check before assuming you have to pay. Sorted by estimated price; also check each journal's preprint policy at Open Policy Finder, then upload the version you may share to a non-profit repository (see FAQ).",
+    de: "Dafür konnte keine freie Version gefunden werden. Trotzdem kann ein PDF existieren (z. B. bei Google Scholar oder auf einem Preprint-Server). Nutze die Suchlinks unter jedem Artikel, bevor du davon ausgehst, bezahlen zu müssen. Nach geschätztem Preis sortiert; prüfe außerdem die Preprint-Richtlinie jeder Zeitschrift bei Open Policy Finder und lade die Version hoch, die du teilen darfst (siehe FAQ).",
   },
   csv: { en: "Download CSV", de: "CSV herunterladen" },
   free_h: { en: "Already freely available", de: "Bereits frei verfügbar" },
@@ -86,6 +86,8 @@ const TR = {
   open_tag: { en: "open", de: "frei" },
   free_version: { en: "Free version", de: "Freie Version" },
   check_rights: { en: "Check preprint rights", de: "Preprint-Rechte prüfen" },
+  find_preprint: { en: "No free version found. Check for a PDF:", de: "Keine freie Version gefunden. Hier nach einem PDF suchen:" },
+  preprint_found: { en: "Free preprint found", de: "Freies Preprint gefunden" },
   price_listed: { en: "Typical price for this publisher", de: "Typischer Preis dieses Verlags" },
   price_default: { en: "Default price (publisher not in table)", de: "Standardpreis (Verlag nicht in der Tabelle)" },
   th_publisher: { en: "Publisher", de: "Verlag" },
@@ -330,6 +332,110 @@ async function unpaywall(doi, email) {
   }
 }
 
+/* ---------- preprint fallback search ----------
+   OpenAlex / Unpaywall check the DOI's own record for a free copy. They do not
+   search for a *preprint version* of a paywalled article, and their coverage of
+   some servers (notably PsyArXiv/OSF) is incomplete. So when they find nothing,
+   we look for a matching preprint on servers we do not already query.
+   CORS note: OpenAlex is reachable from the browser. OSF (PsyArXiv/SocArXiv/
+   MetaArXiv), arXiv and Zenodo do not expose CORS from arbitrary origins, so
+   those calls can fail from a hosted page and are wrapped defensively; manual
+   "search" links below always work as a fallback. */
+function queryTitle(ref) {
+  return (ref || "").replace(/\b10\.\d{4,9}\/[^\s]+/g, " ").replace(/https?:\/\/\S+/g, " ")
+    .replace(/[\[\](){}<>]/g, " ").replace(/\s+/g, " ").trim().slice(0, 200);
+}
+
+// Abort a slow/hanging request so a single unresponsive server (e.g. Zenodo)
+// cannot stall the whole check.
+async function fetchTimeout(url, ms = 8000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try { return await fetch(url, { signal: ctrl.signal }); }
+  finally { clearTimeout(t); }
+}
+
+async function openAlexPreprint(searchTitle, email) {
+  const p = new URLSearchParams({
+    filter: "type:preprint,title.search:" + searchTitle,
+    "per-page": "5",
+  });
+  if (email) p.set("mailto", email);
+  const res = await fetchTimeout("https://api.openalex.org/works?" + p);
+  if (!res.ok) return null;
+  const items = (await res.json()).results || [];
+  for (const it of items) {
+    const itTitle = it.title || it.display_name || "";
+    if (itTitle && titleMatches(itTitle, searchTitle)) {
+      const oa = it.open_access || {};
+      const best = it.best_oa_location || {};
+      return { url: best.landing_page_url || best.pdf_url || oa.oa_url || null, doi: it.doi || null, source: "OpenAlex", title: itTitle };
+    }
+  }
+  return null;
+}
+
+async function osfPreprint(searchTitle) {
+  const p = new URLSearchParams({ "filter[title]": searchTitle, "page[size]": "5" });
+  const res = await fetchTimeout("https://api.osf.io/v2/preprints/?" + p);
+  if (!res.ok) return null;
+  const items = (await res.json()).data || [];
+  for (const it of items) {
+    const itTitle = (it.attributes && it.attributes.title) || "";
+    if (itTitle && titleMatches(itTitle, searchTitle)) {
+      const provider = (it.relationships && it.relationships.provider && it.relationships.provider.data && it.relationships.provider.data.id) || "";
+      return { url: (it.links && it.links.html) || null, doi: (it.links && it.links.preprint_doi) || null, source: "OSF" + (provider ? " (" + provider + ")" : ""), title: itTitle };
+    }
+  }
+  return null;
+}
+
+async function arxivPreprint(searchTitle) {
+  const q = searchTitle.slice(0, 120).replace(/[":]/g, " ");
+  const url = "https://export.arxiv.org/api/query?search_query=" + encodeURIComponent("all:" + q) + "&max_results=5";
+  const res = await fetchTimeout(url);
+  if (!res.ok) return null;
+  const doc = new DOMParser().parseFromString(await res.text(), "text/xml");
+  const entries = Array.from(doc.querySelectorAll("entry"));
+  for (const e of entries) {
+    const itTitle = ((e.querySelector("title") || {}).textContent || "").replace(/\s+/g, " ").trim();
+    if (itTitle && titleMatches(itTitle, searchTitle)) {
+      let url2 = null;
+      const links = e.querySelectorAll("link");
+      for (const l of links) { if (l.getAttribute("rel") === "alternate") { url2 = l.getAttribute("href"); break; } }
+      if (!url2) { const idEl = e.querySelector("id"); url2 = idEl ? idEl.textContent : null; }
+      return { url: url2, source: "arXiv", title: itTitle };
+    }
+  }
+  return null;
+}
+
+async function zenodoPreprint(searchTitle) {
+  const p = new URLSearchParams({ q: searchTitle, size: "5" });
+  const res = await fetchTimeout("https://zenodo.org/api/records?" + p);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const items = (data.hits && data.hits.hits) || [];
+  for (const it of items) {
+    const md = it.metadata || {};
+    const itTitle = md.title || "";
+    if (itTitle && titleMatches(itTitle, searchTitle)) {
+      return { url: (it.links && it.links.html) || null, doi: it.doi || null, source: "Zenodo", title: itTitle };
+    }
+  }
+  return null;
+}
+
+async function findPreprint(title, ref, email) {
+  const searchTitle = (title && title.length > 4) ? title : queryTitle(ref);
+  if (!searchTitle) return null;
+  try { const oa = await openAlexPreprint(searchTitle, email); if (oa) return oa; } catch (e) { /* ignore */ }
+  try { const osf = await osfPreprint(searchTitle); if (osf) return osf; } catch (e) { /* ignore */ }
+  try { const ax = await arxivPreprint(searchTitle); if (ax) return ax; } catch (e) { /* ignore */ }
+  try { const zen = await zenodoPreprint(searchTitle); if (zen) return zen; } catch (e) { /* ignore */ }
+  return null;
+}
+
 /* ---------- one reference ---------- */
 async function checkReference(ref, email) {
   let doi = extractDoi(ref);
@@ -339,14 +445,17 @@ async function checkReference(ref, email) {
     if (cr) doi = cr.DOI;
     await sleep(100);
   }
-  if (!doi) return { ref, found: false };
 
   let work = null;
   let oaError = false; // OpenAlex unreachable or rate-limited: OA status is then unknown, not "closed"
-  try { work = await openAlexWork(doi, email); } catch (e) { oaError = true; }
+  if (doi) {
+    try { work = await openAlexWork(doi, email); } catch (e) { oaError = true; }
+  }
 
-  let title, year, journal, publisher, free = false, freeUrl = null, oaStatus = null;
+  let title = null, year, journal, publisher, free = false, freeUrl = null, oaStatus = null;
+  let resolved = false; // did we identify the article (OpenAlex work or Crossref record)?
   if (work) {
+    resolved = true;
     const src = (work.primary_location && work.primary_location.source) || {};
     title = work.title || work.display_name;
     year = work.publication_year;
@@ -357,22 +466,46 @@ async function checkReference(ref, email) {
     oaStatus = oa.oa_status || null;
     const best = work.best_oa_location || {};
     freeUrl = best.landing_page_url || best.pdf_url || oa.oa_url || null;
-  } else {
+  } else if (doi) {
     if (!cr) { try { cr = await crossrefWork(doi, email); } catch (e) { cr = null; } }
-    if (!cr) return { ref, found: false, doi };
-    title = (cr.title || [])[0];
-    year = ((cr.issued || {})["date-parts"] || [[]])[0][0] || null;
-    journal = (cr["container-title"] || [])[0] || null;
-    publisher = cr.publisher || null;
+    if (cr) {
+      resolved = true;
+      title = (cr.title || [])[0];
+      year = ((cr.issued || {})["date-parts"] || [[]])[0][0] || null;
+      journal = (cr["container-title"] || [])[0] || null;
+      publisher = cr.publisher || null;
+    }
   }
+
   let unknown = false;
-  if (!free) {
+  if (doi && !free) {
     const up = await unpaywall(doi, email);
     if (up && !up.closed) { free = true; freeUrl = up.url; oaStatus = oaStatus || "unpaywall"; }
     else if (oaError && !(up && up.closed)) unknown = true;
   }
+
+  // Fallback: OpenAlex/Unpaywall found no free copy (or could not match the
+  // reference, or did not answer). Only then do we look for a preprint on
+  // servers they do not fully cover (PsyArXiv/OSF, arXiv, Zenodo, ...). Never
+  // runs when a free version is already known. If a preprint is found it wins
+  // over an earlier "unknown" status; otherwise "unknown" is preserved.
+  let preprintSource = null;
+  if (!free) {
+    const preprint = await findPreprint(title, ref, email);
+    if (preprint) {
+      free = true;
+      unknown = false;
+      freeUrl = preprint.url;
+      oaStatus = "preprint";
+      preprintSource = preprint.source || null;
+      resolved = true;
+      if (!title) title = preprint.title || ref;
+      if (!doi) doi = preprint.doi || null;
+    }
+  }
+
   const price = free || unknown ? null : priceFor(publisher);
-  return { ref, found: true, unknown, doi, title: title || ref, year, journal, publisher, free, freeUrl, oaStatus, price };
+  return { ref, found: resolved || free, unknown, doi, title: title || ref, year, journal, publisher, free, freeUrl, oaStatus, preprintSource, price };
 }
 
 /* ---------- run ---------- */
@@ -414,12 +547,26 @@ async function run() {
 
 /* ---------- rendering ---------- */
 function doiLink(doi) {
+  if (!doi) return null;
   return el("a", { href: "https://doi.org/" + doi, target: "_blank", rel: "noopener noreferrer", text: "DOI" });
 }
 
 function metaLine(r) {
   const bits = [r.journal, r.year, r.publisher].filter(Boolean);
   return bits.join(" · ");
+}
+
+// Manual preprint searches. Google Scholar and OSF/arXiv/Zenodo cannot all be
+// queried automatically from the browser (CORS), so these always remain available.
+function preprintSearchLinks(r) {
+  const q = encodeURIComponent(r.title || r.ref || "");
+  const t = (label, url) => el("a", { href: url, target: "_blank", rel: "noopener noreferrer", text: label });
+  return [
+    t("Google Scholar", "https://scholar.google.com/scholar?q=" + q),
+    t("PsyArXiv/OSF", "https://osf.io/preprints/discover?q=" + q),
+    t("arXiv", "https://arxiv.org/search/?query=" + q + "&searchtype=all"),
+    t("Zenodo", "https://zenodo.org/search?q=" + q),
+  ];
 }
 
 function render(scroll = true) {
@@ -446,8 +593,10 @@ function render(scroll = true) {
   $("paywalled-list").replaceChildren(...paywalled.map((r) => {
     const links = el("div", { class: "art-links" }, doiLink(r.doi),
       el("a", { href: opfUrl(r.journal), target: "_blank", rel: "noopener noreferrer", text: t("check_rights") }));
+    const searchLinks = el("div", { class: "art-links search-links" },
+      el("span", { class: "search-lbl", text: t("find_preprint") + ":" }), ...preprintSearchLinks(r));
     const price = el("span", { class: "price", title: r.price.listed ? t("price_listed") : t("price_default"), text: "~" + money(r.price.eur) });
-    return el("li", {}, el("div", { class: "art-title" }, r.title, price), el("div", { class: "art-meta", text: metaLine(r) }), links);
+    return el("li", {}, el("div", { class: "art-title" }, r.title, price), el("div", { class: "art-meta", text: metaLine(r) }), links, searchLinks);
   }));
 
   $("n-free").textContent = free.length;
@@ -455,8 +604,10 @@ function render(scroll = true) {
   $("free-list").replaceChildren(...free.map((r) => {
     const links = el("div", { class: "art-links" }, doiLink(r.doi));
     if (r.freeUrl) links.append(el("a", { href: r.freeUrl, target: "_blank", rel: "noopener noreferrer", text: t("free_version") }));
-    return el("li", {}, el("div", { class: "art-title" }, r.title, el("span", { class: "tag-ok", text: "  " + t("open_tag") + (r.oaStatus ? " (" + r.oaStatus + ")" : "") })),
-      el("div", { class: "art-meta", text: metaLine(r) }), links);
+    const tag = t("open_tag") + (r.oaStatus ? " (" + r.oaStatus + ")" : "");
+    return el("li", {}, el("div", { class: "art-title" }, r.title, el("span", { class: "tag-ok", text: "  " + tag })),
+      el("div", { class: "art-meta", text: metaLine(r) }), links,
+      r.preprintSource ? el("div", { class: "art-meta", text: t("preprint_found") + ": " + r.preprintSource }) : null);
   }));
 
   $("n-unk").textContent = unknownList.length;
