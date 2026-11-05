@@ -63,13 +63,9 @@
 #metrics-table td:last-child, #metrics-table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
 #metrics-table .metric-sub { color: var(--text-muted); font-size: .78rem; font-weight: 400; }
 
-/* two-column cards */
+/* section headers */
 .list-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .list-head h2 { margin: 0; }
-
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
-.two-col .card { margin-bottom: 24px; }
-@media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
 
 /* altmetric badge */
 .altmetric-embed { margin: 4px 0 8px; }
