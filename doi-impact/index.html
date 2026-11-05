@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DOI Impact Explorer</title>
+  <meta name="description" content="Enter a DOI and get Altmetric, OpenAlex citations, BIP! Scholar impact classes and mean citedness." />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <nav class="app-nav" aria-label="Apps">
+    <div class="container app-nav-inner">
+      <a href="../">Publication Cost Calculator</a>
+      <span class="app-nav-sep" aria-hidden="true">·</span>
+      <a href="../paywall/">Paywall Checker</a>
+      <span class="app-nav-sep" aria-hidden="true">·</span>
+      <a href="./" class="active" aria-current="page">DOI Impact Explorer</a>
+    </div>
+  </nav>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <h1>📈 DOI Impact Explorer</h1>
+      <p class="tagline">Altmetric · OpenAlex · BIP! Scholar · Crossref, all in one place</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Search -->
+    <section class="card search-card">
+      <form id="search-form" autocomplete="off">
+        <label for="doi-input">DOI</label>
+        <div class="search-row">
+          <input id="doi-input" type="text" placeholder="e.g. 10.1038/nature12373 or https://doi.org/10.1038/nature12373" required />
+          <button type="submit" id="search-btn">Analyze</button>
+        </div>
+
+        <label for="email-input">
+          Your email <span class="muted">(optional; used for the OpenAlex &amp; Crossref "polite pool", stored only in your browser)</span>
+        </label>
+        <div class="search-row">
+          <input id="email-input" type="email" placeholder="you@university.edu" />
+          <button type="button" id="save-email" class="secondary">Save</button>
+        </div>
+
+        <div class="examples">
+          Try:
+          <button type="button" class="link-btn example" data-doi="10.1038/nature12373">10.1038/nature12373</button>
+          <button type="button" class="link-btn example" data-doi="10.1371/journal.pmed.0020124">10.1371/journal.pmed.0020124</button>
+          <button type="button" class="link-btn example" data-doi="10.1126/science.aac4716">10.1126/science.aac4716</button>
+        </div>
+      </form>
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <div id="results" hidden>
+      <!-- Paper info -->
+      <section class="card" id="paper-card"></section>
+
+      <!-- Key metrics -->
+      <section class="metrics-grid" id="metrics-grid"></section>
+
+      <!-- Chart -->
+      <section class="card">
+        <div class="card-head">
+          <h2>Citations over time <span class="muted small">(OpenAlex)</span></h2>
+          <div class="chart-actions">
+            <button type="button" class="secondary small-btn" id="download-csv">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="cite-chart"></canvas></div>
+        <p class="muted small" id="chart-note"></p>
+      </section>
+
+      <div class="two-col">
+        <!-- Altmetric -->
+        <section class="card" id="altmetric-card">
+          <h2>Altmetric</h2>
+          <div class="card-body">Loading…</div>
+        </section>
+
+        <!-- BIP -->
+        <section class="card" id="bip-card">
+          <h2>BIP! Scholar impact</h2>
+          <div class="card-body">Loading…</div>
+        </section>
+      </div>
+
+      <!-- Mean citedness -->
+      <section class="card" id="citedness-card">
+        <h2>Mean citedness <span class="muted small">(OpenAlex 2-year mean citedness)</span></h2>
+        <div class="card-body">Loading…</div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="container footer muted small">
+    Data from
+    <a href="https://openalex.org" target="_blank" rel="noopener">OpenAlex</a>,
+    <a href="https://www.altmetric.com" target="_blank" rel="noopener">Altmetric</a>,
+    <a href="https://bip.imsi.athenarc.gr" target="_blank" rel="noopener">BIP! Finder</a> and
+    <a href="https://www.crossref.org" target="_blank" rel="noopener">Crossref</a>.
+    All requests go directly from your browser to these APIs.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

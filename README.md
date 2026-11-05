@@ -14,6 +14,16 @@ just static files you can host on GitHub Pages. Available in English and
 German (toggle top-right), with a plain-language glossary for anyone
 unfamiliar with APCs, OA types, or these metrics.
 
+This repo also bundles two related client-side tools, reachable from the
+top navigation bar:
+
+- **Paywall Checker** (`paywall/`): check which of your articles are stuck
+  behind a paywall.
+- **DOI Impact Explorer** (`doi-impact/`): enter a DOI and get citation
+  history, FWCI, normalized citation percentile, journal/author mean
+  citedness, Altmetric attention, BIP! Scholar impact classes, and a
+  Crossref comparison.
+
 ## Hosting on GitHub Pages
 
 1. Create a new GitHub repository (or a folder in an existing one) and push
