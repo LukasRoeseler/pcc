@@ -1,0 +1,97 @@
+/* DOI Metrics Explorer: layered on top of ../style.css, which provides the
+   shared tokens (light/dark), settings bar, tabs, cards, buttons, tables,
+   chart container and footer. */
+
+.hero.welcome-state { padding-bottom: 1.5rem; }
+.hero h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); margin-bottom: 0; }
+
+.lbl { display: block; font-weight: 700; margin-bottom: 8px; }
+.lbl-sm { display: block; font-weight: 700; font-size: .85rem; margin-bottom: 4px; }
+.opt { font-weight: 400; color: var(--text-muted); }
+
+.input-card input[type="text"],
+.input-card input[type="email"] {
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px 12px;
+}
+.input-card input:focus { outline: 2px solid var(--primary-light); outline-offset: 0; }
+.input-card .email-row { margin-top: 14px; }
+.input-card .actions { margin-top: 14px; }
+
+.examples { margin-top: 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-body);
+  font-size: .85rem;
+  font-weight: 600;
+  padding: 2px 4px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.link-btn:hover { color: var(--primary-dark); }
+
+.status { margin-top: 12px; }
+.status.error { color: var(--danger); font-weight: 600; }
+.status.ok { color: var(--primary); font-weight: 600; }
+.status a { color: var(--primary); }
+
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: -2px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* paper card */
+.paper-title { font-size: 1.25rem; margin: 0 0 6px; overflow-wrap: anywhere; }
+.paper-meta { color: var(--text-secondary); font-size: .92rem; margin: 2px 0; }
+.paper-meta a { color: var(--primary); }
+
+/* metrics table */
+#metrics-table td:last-child, #metrics-table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+#metrics-table .metric-sub { color: var(--text-muted); font-size: .78rem; font-weight: 400; }
+
+/* two-column cards */
+.list-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.list-head h2 { margin: 0; }
+
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+.two-col .card { margin-bottom: 24px; }
+@media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+/* altmetric badge */
+.altmetric-embed { margin: 4px 0 8px; }
+
+/* BIP classes */
+.bip-table .bip-class {
+  display: inline-block;
+  min-width: 2.4rem;
+  text-align: center;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-weight: 700;
+  font-size: .78rem;
+  color: #fff;
+  white-space: nowrap;
+}
+.bip-C1 { background: #00441b; }
+.bip-C2 { background: #1b7837; }
+.bip-C3 { background: #4daf4a; }
+.bip-C4 { background: #a6d96a; color: #20421c !important; }
+.bip-C5 { background: #808080; }
+.bip-table td.num, .bip-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* open access */
+#oa-card .oa-url { word-break: break-all; }

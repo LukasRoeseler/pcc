@@ -19,7 +19,7 @@ top navigation bar:
 
 - **Paywall Checker** (`paywall/`): check which of your articles are stuck
   behind a paywall.
-- **DOI Impact Explorer** (`doi-impact/`): enter a DOI and get citation
+- **DOI Metrics Explorer** (`doi-metrics/`): enter a DOI and get citation
   history, FWCI, normalized citation percentile, journal/author mean
   citedness, Altmetric attention, BIP! Scholar impact classes, and a
   Crossref comparison.

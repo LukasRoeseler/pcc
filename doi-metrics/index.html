@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOI Metrics Explorer</title>
+<meta name="description" content="Enter a DOI and get OpenAlex citation history, FWCI, percentile, journal and author mean citedness, Altmetric attention and BIP! Scholar impact classes.">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Carlito:wght@400;700&display=swap" rel="stylesheet">
+<script>try{document.documentElement.setAttribute("data-theme",localStorage.getItem("theme")||"dark")}catch(e){}</script>
+<link rel="stylesheet" href="../style.css?v=tabs1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <div class="wrap settings-bar-row">
+    <nav class="app-tabs" aria-label="Apps">
+      <a href="../" class="app-tab">Publication Cost Calculator</a>
+      <a href="../paywall/" class="app-tab">Paywall Checker</a>
+      <a href="./" class="app-tab active" aria-current="page">DOI Metrics Explorer</a>
+    </nav>
+    <div class="settings-bar-controls">
+      <button type="button" class="icon-btn" id="theme-btn" aria-label="Toggle light or dark theme"></button>
+      <div class="lang-toggle" role="group" aria-label="Language / Sprache">
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="de">DE</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="wrap">
+
+  <section class="hero welcome-state">
+    <h1 data-i18n="title">DOI Metrics Explorer</h1>
+  </section>
+
+  <section class="card input-card">
+    <form id="search-form" autocomplete="off">
+      <label for="doi-input" class="lbl" data-i18n="doi_label">DOI</label>
+      <input id="doi-input" type="text" data-i18n-placeholder="doi_placeholder" placeholder="e.g. 10.1038/nature12373 or https://doi.org/10.1038/nature12373" required>
+
+      <div class="email-row">
+        <label for="email-input" class="lbl-sm"><span data-i18n="email_label">Your email</span> <span class="opt" data-i18n="email_hint">(optional; used for the OpenAlex and Crossref polite pool, stored only in your browser)</span></label>
+        <input id="email-input" type="email" autocomplete="email" data-i18n-placeholder="email_placeholder" placeholder="you@university.edu">
+      </div>
+
+      <div class="actions">
+        <button id="search-btn" class="btn-primary" type="submit" data-i18n="analyze">Analyze</button>
+        <button id="save-email" class="btn-secondary" type="button" data-i18n="save_email">Save</button>
+      </div>
+
+      <div class="examples">
+        <span class="hint-inline" data-i18n="try">Try:</span>
+        <button type="button" class="link-btn example" data-doi="10.1038/nature12373">10.1038/nature12373</button>
+        <button type="button" class="link-btn example" data-doi="10.1371/journal.pmed.0020124">10.1371/journal.pmed.0020124</button>
+        <button type="button" class="link-btn example" data-doi="10.1126/science.aac4716">10.1126/science.aac4716</button>
+      </div>
+    </form>
+    <div id="status" class="hint status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section id="results" class="hidden">
+
+    <section class="card" id="paper-card"></section>
+
+    <section class="card" id="metrics-card">
+      <h2 data-i18n="metrics_h">Metrics</h2>
+      <div class="table-scroll">
+        <table id="metrics-table">
+          <thead><tr><th data-i18n="metric">Metric</th><th data-i18n="value">Value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card" id="chart-card">
+      <div class="list-head">
+        <h2 data-i18n="chart_title">Citations over time (OpenAlex)</h2>
+        <button id="download-csv" class="btn-secondary" type="button" data-i18n="download_csv">Download CSV</button>
+      </div>
+      <div class="chart-container"><canvas id="cite-chart" role="img" aria-label="Citations per year and cumulative citations"></canvas></div>
+      <p class="hint" id="chart-note"></p>
+    </section>
+
+    <div class="two-col">
+      <section class="card" id="altmetric-card">
+        <h2 data-i18n="altmetric_h">Altmetric</h2>
+        <div class="card-body"><span class="hint" data-i18n="loading">Loading...</span></div>
+      </section>
+      <section class="card" id="bip-card">
+        <h2 data-i18n="bip_h">BIP! Scholar impact</h2>
+        <div class="card-body"><span class="hint" data-i18n="loading">Loading...</span></div>
+      </section>
+    </div>
+
+    <section class="card" id="citedness-card">
+      <h2 data-i18n="citedness_h">Mean citedness (OpenAlex 2-year mean citedness)</h2>
+      <div class="card-body"><span class="hint" data-i18n="loading">Loading...</span></div>
+    </section>
+
+    <section class="card" id="oa-card">
+      <h2 data-i18n="oa_h">Open Access</h2>
+      <div class="card-body"><span class="hint" data-i18n="loading">Loading...</span></div>
+    </section>
+
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p data-i18n-html="footer"></p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script async src="https://d1bxh8uas1mnw7.cloudfront.net/assets/embed.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
