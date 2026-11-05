@@ -512,11 +512,11 @@ async function analyze(rawDoi) {
         : t("error_openalex", { msg: esc(e.message) }),
       "error"
     );
-    $("#results").hidden = true;
+    $("#results").classList.add("hidden");
     return;
   }
 
-  $("#results").hidden = false;
+  $("#results").classList.remove("hidden");
   state = { work, doi, extras: {}, altScore: null, source: null, authors: [], bip: null, series: null, noteKey: null, noteVars: null };
   renderPaper(work, doi);
   renderMetrics(work, state.extras, null);
