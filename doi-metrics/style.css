@@ -67,7 +67,7 @@
 .list-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .list-head h2 { margin: 0; }
 
-.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
 .two-col .card { margin-bottom: 24px; }
 @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
 

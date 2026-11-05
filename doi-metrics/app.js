@@ -98,7 +98,9 @@ const TR = {
   oa_open: { en: "Open access", de: "Open Access" },
   oa_status: { en: "OA status", de: "OA-Status" },
   oa_license: { en: "License", de: "Lizenz" },
-  oa_location: { en: "Best free location", de: "Beste freie Quelle" },
+  oa_location: { en: "Free PDF / best location", de: "Freies PDF / beste Quelle" },
+  oa_apc_paid: { en: "APC paid", de: "Bezahlte APC" },
+  oa_apc_list: { en: "APC list price", de: "APC-Listenpreis" },
   oa_type: { en: "Type", de: "Typ" },
   yes: { en: "Yes", de: "Ja" },
   no: { en: "No", de: "Nein" },
@@ -326,7 +328,7 @@ function renderAltmetric(doi) {
   div.setAttribute("data-hide-no-mentions", "true");
   div.setAttribute("data-doi", doi);
   body.appendChild(div);
-  if (window._altmetric_embed_init) window._altmetric_embed_init(div);
+  if (window._altmetric_embed_init) window._altmetric_embed_init(body);
 
   const obs = new MutationObserver(() => {
     const img = div.querySelector("img");
@@ -438,13 +440,19 @@ function renderCitedness(work, source, authors) {
 function renderOA(work) {
   const oa = work.open_access || {};
   const best = work.best_oa_location || {};
-  const loc = best.landing_page_url || best.pdf_url || null;
+  const loc = best.pdf_url || best.landing_page_url || oa.oa_url || null;
+  const money = (apc) =>
+    apc && apc.value != null
+      ? `${fmt(apc.value)} ${apc.currency || "USD"}`
+      : t("no_data");
   const rows = [
     [t("oa_open"), oa.is_oa ? t("yes") : t("no")],
     [t("oa_status"), oa.oa_status ? esc(oa.oa_status) : t("no_data")],
     [t("oa_license"), oa.license ? esc(oa.license) : t("no_data")],
     [t("oa_type"), work.type ? esc(work.type) : t("no_data")],
     [t("oa_location"), loc ? `<a class="oa-url" href="${esc(loc)}" target="_blank" rel="noopener">${esc(loc)}</a>` : t("no_data")],
+    [t("oa_apc_paid"), money(work.apc_paid)],
+    [t("oa_apc_list"), money(work.apc_list)],
   ];
   $("#oa-card .card-body").innerHTML = `
     <div class="table-scroll"><table>
@@ -520,6 +528,7 @@ async function analyze(rawDoi) {
   state = { work, doi, extras: {}, altScore: null, source: null, authors: [], bip: null, series: null, noteKey: null, noteVars: null };
   renderPaper(work, doi);
   renderMetrics(work, state.extras, null);
+  renderOA(work);
 
   const workId = shortId(work.id);
   const historyP = fetchCitationHistory(workId)
